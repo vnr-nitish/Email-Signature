@@ -89,22 +89,32 @@ snake_case columns internally.
 2. **Project Settings (gear icon) → API** — copy the **Project URL** and the
    **anon public** key (never the `service_role` key — that one must stay
    server-side) into [js/supabase-config.js](js/supabase-config.js).
-3. **Authentication → Providers → Google** — enable it. Supabase's UI walks
+3. **Project Settings → Data API**:
+   - **Enable Data API** — ON (required; this is what `supabase-js` talks
+     to).
+   - **Automatically expose new tables** — OFF (Supabase's own
+     recommendation; `supabase-schema.sql` already includes the explicit
+     `grant` statements this would otherwise have done automatically, so
+     nothing breaks by turning it off).
+   - **Enable automatic RLS** — ON (free safety net: any table either of us
+     adds later automatically gets row-level security turned on, so it can
+     never accidentally ship exposed).
+4. **Authentication → Providers → Google** — enable it. Supabase's UI walks
    you through creating the Google OAuth client ID/secret it needs; you'll
    need a Google Cloud project for that (a free, separate thing from
    Supabase/Firebase).
-4. **SQL Editor → New query** — paste and run
+5. **SQL Editor → New query** — paste and run
    [supabase-schema.sql](supabase-schema.sql). This creates the `profiles`
    and `managed_signatures` tables, the domain-restriction and admin-check
    functions + row-level-security policies, the public `avatars` and
    `banners` storage buckets, and their upload policies, all in one go.
-5. **Storage** — double check the `avatars` and `banners` buckets exist and
+6. **Storage** — double check the `avatars` and `banners` buckets exist and
    are marked **Public** (the script creates both, but worth confirming).
-6. **Authentication → Users → Add user** — create the admin account: email
+7. **Authentication → Users → Add user** — create the admin account: email
    `nitishraj.vinnakota2212@gmail.com`, and set the password directly here
    (never in code — see "Admin panel" below for why). Check "Auto Confirm
    User" so it's usable immediately.
-7. Set `BACKEND = "supabase"` in [js/app-config.js](js/app-config.js).
+8. Set `BACKEND = "supabase"` in [js/app-config.js](js/app-config.js).
 
 Send me the Project URL + anon key once you've done steps 1–2 and I'll wire
 them in and push.

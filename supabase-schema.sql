@@ -3,6 +3,16 @@
 
 create extension if not exists pgcrypto;
 
+-- If your project has "Automatically expose new tables" turned OFF (under
+-- Project Settings > Data API — recommended, since it's stricter by
+-- default), new tables don't get Data API access automatically. These two
+-- grants are the manual equivalent for the tables this app actually uses.
+-- RLS policies below still control what each grant can actually see/touch
+-- row-by-row — a grant alone doesn't bypass RLS, it just lets a request
+-- reach the RLS check at all. (Harmless to re-run if the setting was ON —
+-- it just makes explicit what would have happened automatically.)
+grant usage on schema public to authenticated;
+
 -- One row per student, keyed by their auth.users id.
 create table if not exists profiles (
   id uuid primary key references auth.users on delete cascade,
@@ -26,6 +36,7 @@ create table if not exists profiles (
 );
 
 alter table profiles enable row level security;
+grant select, insert, update, delete on profiles to authenticated;
 
 -- Keep this list in sync with ALLOWED_EMAIL_DOMAINS in js/app-config.js.
 -- The app already checks this and signs disallowed users straight back
@@ -127,6 +138,7 @@ create table if not exists managed_signatures (
 );
 
 alter table managed_signatures enable row level security;
+grant select, insert, update, delete on managed_signatures to authenticated;
 
 create policy "Only the admin can manage signatures"
   on managed_signatures for all
