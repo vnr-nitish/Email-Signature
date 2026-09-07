@@ -95,15 +95,53 @@ snake_case columns internally.
    Supabase/Firebase).
 4. **SQL Editor → New query** — paste and run
    [supabase-schema.sql](supabase-schema.sql). This creates the `profiles`
-   table, the domain-restriction function + row-level-security policies, the
-   public `avatars` storage bucket, and that bucket's upload policies, all in
-   one go.
-5. **Storage** — double check the `avatars` bucket exists and is marked
-   **Public** (the script creates it, but worth confirming).
-6. Set `BACKEND = "supabase"` in [js/app-config.js](js/app-config.js).
+   and `managed_signatures` tables, the domain-restriction and admin-check
+   functions + row-level-security policies, the public `avatars` and
+   `banners` storage buckets, and their upload policies, all in one go.
+5. **Storage** — double check the `avatars` and `banners` buckets exist and
+   are marked **Public** (the script creates both, but worth confirming).
+6. **Authentication → Users → Add user** — create the admin account: email
+   `nitishraj.vinnakota2212@gmail.com`, and set the password directly here
+   (never in code — see "Admin panel" below for why). Check "Auto Confirm
+   User" so it's usable immediately.
+7. Set `BACKEND = "supabase"` in [js/app-config.js](js/app-config.js).
 
 Send me the Project URL + anon key once you've done steps 1–2 and I'll wire
 them in and push.
+
+## Admin panel
+
+`admin-login.html` is a separate, Google-independent login (plain
+email/password via Supabase Auth) for exactly one account — the domain
+restriction above doesn't apply to it at all. Only the account whose email
+matches `ADMIN_EMAIL` in [js/app-config.js](js/app-config.js) is let into
+`admin.html` (checked by `requireAdmin()` in `js/auth-guard.js`); the
+database independently enforces the same thing via `is_admin()` in the
+schema, for the `managed_signatures` table and the `banners` bucket.
+
+**Why the password isn't in this codebase:** this repo is public. A
+password committed here would be visible to literally anyone who opens the
+file on GitHub. Since email/password auth is already a first-class Supabase
+feature, there's no need to invent a custom check anyway — you create the
+real account with that email + your chosen password directly in the
+Supabase dashboard (step 6 above), and `signInWithPassword` verifies it
+server-side. If you ever want to change the password, do it there
+(Authentication → Users → the account → reset password) — never in code. If
+you want to change the *admin email*, update it in two places:
+`ADMIN_EMAIL` in `js/app-config.js`, and inside `is_admin()` in
+`supabase-schema.sql` (re-run that `create or replace function` block in
+the SQL Editor with the new email).
+
+From `admin.html`, the admin can create any number of independent
+signatures for any organization or person — each one has its own full set
+of fields (Name/Designation/Institute-Wing/Organization/Location/Phone/
+Website + socials), its own photo (with the same crop tool students use),
+and its own banner image + link, uploaded separately per signature. These
+aren't tied to any login at all — the person the signature is for never
+signs into anything; only the admin manages it. They're stored in a
+separate `managed_signatures` table, entirely apart from student profiles.
+The five social icons stay the shared defaults from `assets/icons/` — only
+the banner is per-signature.
 
 ## Running it locally
 
@@ -168,9 +206,12 @@ the original file).
 
 ## Known limitations
 
-- No admin/bulk-invite flow — any allowed-domain Google account can sign
-  itself up.
+- No bulk-invite flow for students — any allowed-domain Google account can
+  sign itself up. The admin panel covers one-off/manual signature creation,
+  not bulk provisioning.
 - No client-side image resizing beyond the crop tool's fixed 320×320 output.
+- Deleting a managed signature doesn't clean up its uploaded photo/banner
+  files in Storage — they just become orphaned, harmless but unused.
 - Works best in Gmail; other clients (especially Outlook desktop) render
   HTML signatures less faithfully — the template intentionally avoids
   flexbox/CSS-grid and SVG for that reason.

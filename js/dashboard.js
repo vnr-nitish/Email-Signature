@@ -2,6 +2,7 @@ import { backend } from "./backend.js";
 import { requireAuth, wireLogout, getOrCreateProfile } from "./auth-guard.js";
 import { buildSignatureHTML, FONT_OPTIONS } from "./signature-template.js";
 import { openCropper } from "./photo-cropper.js";
+import { copySignatureNode } from "./copy-signature.js";
 
 wireLogout(document.getElementById("logout-btn"));
 
@@ -38,44 +39,6 @@ function setPhotoLocked(locked) {
   photoFormWrap.hidden = locked;
 }
 
-// Copies the fully-rendered HTML (with inline styles) so pasting into the
-// Gmail signature box keeps the layout, photo, and colors intact.
-async function copyNode(node) {
-  // The icon/banner <img> tags use relative src paths so they work whether
-  // this app is running on localhost or a deployed domain. Rewriting each
-  // attribute to element.src (a browser getter that always resolves to a
-  // full absolute URL based on the current page) bakes in the right host
-  // at copy time, so the pasted signature keeps working once it leaves
-  // this page.
-  node.querySelectorAll("img").forEach((img) => {
-    img.setAttribute("src", img.src);
-  });
-
-  const html = node.innerHTML;
-  const text = node.innerText;
-
-  try {
-    await navigator.clipboard.write([
-      new ClipboardItem({
-        "text/html": new Blob([html], { type: "text/html" }),
-        "text/plain": new Blob([text], { type: "text/plain" }),
-      }),
-    ]);
-    return true;
-  } catch (err) {
-    // Fallback for browsers without ClipboardItem support: select the
-    // rendered node in the page and use the older execCommand copy.
-    const range = document.createRange();
-    range.selectNodeContents(node);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    const ok = document.execCommand("copy");
-    selection.removeAllRanges();
-    return ok;
-  }
-}
-
 requireAuth(async (user) => {
   currentUid = user.uid;
   const { data } = await getOrCreateProfile(user.uid, user.email);
@@ -98,14 +61,14 @@ requireAuth(async (user) => {
   });
 
   document.getElementById("copy-with-photo").addEventListener("click", async () => {
-    const ok = await copyNode(previewWithPhoto);
+    const ok = await copySignatureNode(previewWithPhoto);
     copyStatus.textContent = ok
       ? "Copied! Paste it into Gmail: Settings > See all settings > Signature."
       : "Could not copy automatically — select the signature above and copy it manually (Ctrl+C).";
   });
 
   document.getElementById("copy-no-photo").addEventListener("click", async () => {
-    const ok = await copyNode(previewNoPhoto);
+    const ok = await copySignatureNode(previewNoPhoto);
     copyStatus.textContent = ok
       ? "Copied! Paste it into Gmail: Settings > See all settings > Signature."
       : "Could not copy automatically — select the signature above and copy it manually (Ctrl+C).";

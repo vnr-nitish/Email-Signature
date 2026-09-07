@@ -29,7 +29,18 @@ export function isAllowedEmail(email) {
   return ALLOWED_EMAIL_DOMAINS.includes(domain);
 }
 
-// Where clicking the signature's bottom banner graphic should go. Same
-// destination for every user (it's the college site), so it's one constant
-// rather than a per-student profile field.
+// Where clicking the signature's bottom banner graphic should go by
+// default. Individual admin-managed signatures can override this with
+// their own banner image + link (see managed_signatures in the schema);
+// self-service student signatures always use this default.
 export const COLLEGE_WEBSITE_URL = "https://www.gitam.edu";
+
+// The one account allowed into admin.html. This is just an identifier, not
+// a secret, so it's fine hardcoded here — change it any time. The actual
+// password is NOT stored anywhere in this codebase: create/change it
+// directly in the Supabase dashboard (Authentication > Users), since this
+// repo is public and a password committed here would be visible to anyone.
+// If you change this email, also update is_admin() in supabase-schema.sql
+// to match (re-run that CREATE OR REPLACE FUNCTION block in the SQL
+// Editor) — both places enforce the same restriction independently.
+export const ADMIN_EMAIL = "nitishraj.vinnakota2212@gmail.com";

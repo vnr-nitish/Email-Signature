@@ -72,6 +72,11 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     facebook = "",
     twitter = "",
     fontFamily = DEFAULT_FONT,
+    // Per-signature overrides, set by the admin panel for a
+    // managed (non-GITAM) signature. A self-service student signature
+    // never has these set, so it always falls back to the defaults.
+    bannerURL = "",
+    bannerLink = "",
   } = profile;
 
   const font = fontStack(fontFamily);
@@ -105,11 +110,14 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
 
   const nameHtml = `<p style="margin:0 0 4px;font-size:17px;font-weight:700;color:${TEAL};font-family:${font};">${escapeHtml(fullName)}</p>`;
 
+  const effectiveBannerSrc = bannerURL || BANNER_PATH;
+  const effectiveBannerLink = bannerLink || COLLEGE_WEBSITE_URL;
+
   const banner = `
     <tr>
       <td colspan="2" style="padding-top:0;">
-        <a href="${COLLEGE_WEBSITE_URL}" target="_blank" style="display:block;line-height:0;">
-          <img src="${BANNER_PATH}" width="${SIGNATURE_WIDTH}" style="display:block;width:100%;max-width:${SIGNATURE_WIDTH}px;border:0;" alt="" />
+        <a href="${escapeHtml(effectiveBannerLink)}" target="_blank" style="display:block;line-height:0;">
+          <img src="${escapeHtml(effectiveBannerSrc)}" width="${SIGNATURE_WIDTH}" style="display:block;width:100%;max-width:${SIGNATURE_WIDTH}px;border:0;" alt="" />
         </a>
       </td>
     </tr>`;

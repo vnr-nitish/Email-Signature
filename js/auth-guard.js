@@ -1,5 +1,5 @@
 import { backend } from "./backend.js";
-import { isAllowedEmail } from "./app-config.js";
+import { isAllowedEmail, ADMIN_EMAIL } from "./app-config.js";
 
 // Redirects to login.html if nobody is signed in, or if they're signed in
 // with a disallowed email domain (immediately signed back out). Otherwise
@@ -13,6 +13,20 @@ export function requireAuth(onUser) {
     if (!isAllowedEmail(user.email)) {
       await backend.logOut();
       window.location.href = "login.html?denied=1";
+      return;
+    }
+    onUser(user);
+  });
+}
+
+// Separate from requireAuth on purpose: the admin account is a plain Gmail
+// address, not a @gitam.in/etc one, so it must never be run through the
+// student domain check. Only admin.html uses this.
+export function requireAdmin(onUser) {
+  backend.onAuthChange(async (user) => {
+    if (!user || user.email !== ADMIN_EMAIL) {
+      await backend.logOut();
+      window.location.href = "admin-login.html";
       return;
     }
     onUser(user);

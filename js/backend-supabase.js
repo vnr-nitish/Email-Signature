@@ -24,6 +24,8 @@ const FIELD_MAP = {
   twitter: "twitter",
   fontFamily: "font_family",
   detailsSubmitted: "details_submitted",
+  bannerURL: "banner_url",
+  bannerLink: "banner_link",
 };
 
 function toDbRow(partialProfile) {
@@ -63,12 +65,43 @@ function blankProfile(email, fullName) {
   };
 }
 
+function blankManagedSignature() {
+  return {
+    fullName: "",
+    program: "",
+    department: "",
+    school: "",
+    campus: "",
+    mobile: "",
+    website: "",
+    photoURL: "",
+    linkedin: "",
+    instagram: "",
+    youtube: "",
+    facebook: "",
+    twitter: "",
+    fontFamily: "Inter",
+    bannerURL: "",
+    bannerLink: "",
+  };
+}
+
 function toAppUser(user) {
   if (!user) return null;
   return { uid: user.id, email: user.email, displayName: user.user_metadata?.full_name || "" };
 }
 
 export const backend = {
+  // Real password auth for the one admin account — separate from the
+  // Google flow students use. Nothing about this checks the GITAM domain
+  // restriction; the caller (requireAdmin in auth-guard.js) checks the
+  // signed-in email against ADMIN_EMAIL instead.
+  async adminLogin({ email, password }) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return toAppUser(data.user);
+  },
+
   // Supabase's OAuth flow is a full-page redirect (not a popup): the
   // browser navigates to Google and back, landing on `redirectTo`. There's
   // nothing meaningful to return here — index.html's own post-redirect
@@ -133,6 +166,82 @@ export const backend = {
     } = supabase.storage.from("avatars").getPublicUrl(path);
 
     await this.updateProfile(uid, { photoURL: publicUrl });
+    return publicUrl;
+  },
+
+  // ---- Admin-managed signatures ----
+  // These aren't tied to any auth.users row at all — the admin creates one
+  // per organization/person they're building a signature for, entirely
+  // independent of student self-service accounts. Row-level security in
+  // supabase-schema.sql restricts this whole table to the admin account.
+
+  async listManagedSignatures() {
+    const { data, error } = await supabase
+      .from("managed_signatures")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data.map((row) => ({ id: row.id, ...fromDbRow(row) }));
+  },
+
+  async getManagedSignature(id) {
+    const { data, error } = await supabase.from("managed_signatures").select("*").eq("id", id).maybeSingle();
+    if (error) throw error;
+    return data ? { id: data.id, ...fromDbRow(data) } : null;
+  },
+
+  async createManagedSignature() {
+    const id = crypto.randomUUID();
+    const blank = blankManagedSignature();
+    const { error } = await supabase.from("managed_signatures").insert({ id, ...toDbRow(blank) });
+    if (error) throw error;
+    return { id, ...blank };
+  },
+
+  async saveManagedSignature(id, updates) {
+    const { error } = await supabase.from("managed_signatures").update(toDbRow(updates)).eq("id", id);
+    if (error) throw error;
+    return updates;
+  },
+
+  async deleteManagedSignature(id) {
+    const { error } = await supabase.from("managed_signatures").delete().eq("id", id);
+    if (error) throw error;
+  },
+
+  async uploadManagedPhoto(id, fileOrBlob) {
+    const path = `managed/${id}/photo.png`;
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, fileOrBlob, {
+      upsert: true,
+      contentType: fileOrBlob.type || "image/png",
+    });
+    if (uploadError) throw uploadError;
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("avatars").getPublicUrl(path);
+
+    await this.saveManagedSignature(id, { photoURL: publicUrl });
+    return publicUrl;
+  },
+
+  // No fixed extension in the path — Content-Type metadata (set above via
+  // `contentType`) is what tells browsers/email clients how to render it,
+  // not the URL. That keeps this URL stable even if the admin re-uploads a
+  // banner in a different format later (gif -> png, say).
+  async uploadManagedBanner(id, fileOrBlob) {
+    const path = `${id}/banner`;
+    const { error: uploadError } = await supabase.storage.from("banners").upload(path, fileOrBlob, {
+      upsert: true,
+      contentType: fileOrBlob.type || "image/gif",
+    });
+    if (uploadError) throw uploadError;
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("banners").getPublicUrl(path);
+
+    await this.saveManagedSignature(id, { bannerURL: publicUrl });
     return publicUrl;
   },
 };
