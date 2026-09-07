@@ -15,10 +15,15 @@ emails sent months ago — shows the new photo the next time someone opens
 them. Nothing about the old email actually changes; it was only ever
 pointing at a live link.
 
-To make that URL **permanent**, this app generates one random token per user
-the first time they upload a photo, stores it in Firestore, and reuses that
-exact token on every future upload (`js/dashboard.js`). That's what keeps the
-URL from changing even though the file behind it does.
+How that URL stays **permanent** depends on the backend:
+- **Firebase**: a random token is generated once per user, stored in
+  Firestore, and reused on every future upload (`js/backend-firebase.js`) —
+  Firebase Storage would otherwise mint a new token (and therefore a new
+  URL) on every re-upload.
+- **Supabase**: no token needed. A public bucket's URL for a given path is
+  stable by construction, so uploading to the same `<uid>/photo.png` path
+  every time (`upsert: true`, in `js/backend-supabase.js`) already keeps the
+  URL fixed.
 
 ## Stack
 
@@ -30,8 +35,13 @@ Plain HTML/CSS/JS (no build step) with a swappable backend adapter
 - **`firebase`** — real multi-user backend: Authentication (email/password),
   Firestore (one `profiles/{uid}` doc per student), Storage (each photo at a
   fixed path, `photos/{uid}`).
-- A `supabase` adapter can be dropped in the same way later — pages never
-  call Firebase/Supabase directly, only `backend.js`.
+- **`supabase`** — real multi-user backend: Authentication (email/password +
+  Google), Postgres (one row per student in a `profiles` table), Storage
+  (each photo at `avatars/<uid>/photo.png`).
+- Pages never call Firebase/Supabase directly, only `backend.js` — the
+  camelCase profile shape (`fullName`, `photoURL`, etc.) is the same
+  regardless of which adapter is active; `js/backend-supabase.js` maps that
+  to/from Postgres's snake_case columns internally.
 
 ## Try it now — demo mode (no setup)
 
@@ -54,8 +64,32 @@ directly in the copied signature HTML, not as a live server link. That means
 you can test the whole UI/UX — sign up, edit profile, upload a photo,
 copy a signature — but not the actual "old emails auto-update" behavior,
 since that specifically requires a real public, stable URL (Firebase or
-Supabase). Once you're happy with the UI, switch `BACKEND` to `"firebase"`
-(or a future `"supabase"`) to get that for real.
+Supabase). It also means a real photo will likely trip Gmail's "signature
+too long" warning, since the embedded photo alone is often 100KB+ of text.
+Both of those need a real backend — switch `BACKEND` to `"firebase"` or
+`"supabase"` once you're ready (see below).
+
+## One-time setup (for the real `supabase` backend)
+
+1. Go to [supabase.com](https://supabase.com) and create a new project
+   (free tier).
+2. **Project Settings (gear icon) > API** — copy the **Project URL** and the
+   **anon public** key (never the `service_role` key — that one must stay
+   server-side) into [js/supabase-config.js](js/supabase-config.js).
+3. **Authentication > Providers > Email** — for instant login right after
+   signup during development, turn **off** "Confirm email". Turn it back on
+   before a real rollout (students will then need to click a confirmation
+   link before their first login).
+4. **Authentication > Providers > Google** — enable it if you want
+   "Continue with Google" to actually work (Supabase's UI walks you through
+   creating the Google OAuth client ID/secret it needs).
+5. **SQL Editor > New query** — paste and run
+   [supabase-schema.sql](supabase-schema.sql). This creates the `profiles`
+   table, its row-level-security policies, the public `avatars` storage
+   bucket, and that bucket's upload policies.
+6. **Storage** — double check the `avatars` bucket exists and is marked
+   **Public** (the script creates it, but worth confirming).
+7. Set `BACKEND = "supabase"` in [js/app-config.js](js/app-config.js).
 
 ## One-time setup (for the real `firebase` backend)
 
@@ -127,13 +161,14 @@ Firebase.
 ## Google sign-in
 
 The Login page has a "Continue with Google" button.
-- In the real `firebase` backend, this is genuine Google OAuth
-  (`signInWithPopup` + `GoogleAuthProvider`) — remember to enable the Google
-  provider in Firebase Authentication (step 2 above).
+- In `firebase`, this is a popup (`signInWithPopup` + `GoogleAuthProvider`)
+  — remember to enable the Google provider in Firebase Authentication.
+- In `supabase`, this is a full-page redirect to Google and back
+  (`signInWithOAuth`) rather than a popup — that's how Supabase's OAuth
+  flow works. It lands back on the Dashboard already logged in.
 - In local demo mode there's no real Google project to authenticate against,
   so it signs into a fixed stand-in account (`google-demo@signdemo.local`)
-  just so you can see the flow. It becomes real the moment you switch
-  `BACKEND` to `"firebase"`.
+  just so you can see the flow.
 
 ## Customizing the templates
 
