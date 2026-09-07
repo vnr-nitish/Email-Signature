@@ -28,10 +28,25 @@ Object.keys(FONT_OPTIONS).forEach((name) => {
 
 let currentUid = null;
 let profile = null;
+// A fresh value each time a photo is (re)uploaded, appended to the photo
+// URL only for what's actually displayed/copied — never saved to the
+// database. This guarantees every render request is a literally different
+// URL, so no cache anywhere (this browser, a CDN in front of Storage,
+// wherever) can have a matching stale entry to serve. The underlying
+// stored profile.photoURL stays the clean, permanently-stable URL.
+let photoCacheBust = Date.now();
+
+function withCacheBust(url) {
+  if (!url) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}v=${photoCacheBust}`;
+}
 
 function renderTemplates() {
-  previewWithPhoto.innerHTML = buildSignatureHTML(profile, { withPhoto: true });
-  previewNoPhoto.innerHTML = buildSignatureHTML(profile, { withPhoto: false });
+  const displayProfile = profile.photoURL
+    ? { ...profile, photoURL: withCacheBust(profile.photoURL) }
+    : profile;
+  previewWithPhoto.innerHTML = buildSignatureHTML(displayProfile, { withPhoto: true });
+  previewNoPhoto.innerHTML = buildSignatureHTML(displayProfile, { withPhoto: false });
 }
 
 function setPhotoLocked(locked) {
@@ -45,13 +60,13 @@ requireAuth(async (user) => {
   profile = data;
 
   if (profile.photoURL) {
-    photoPreview.src = profile.photoURL;
+    photoPreview.src = withCacheBust(profile.photoURL);
     setPhotoLocked(true);
   } else {
     setPhotoLocked(false);
   }
 
-  fontSelect.value = profile.fontFamily || "Inter";
+  fontSelect.value = profile.fontFamily || "Georgia";
   renderTemplates();
 
   fontSelect.addEventListener("change", async () => {
@@ -91,7 +106,8 @@ requireAuth(async (user) => {
     try {
       const photoURL = await backend.uploadPhoto(currentUid, cropped);
       profile = { ...profile, photoURL };
-      photoPreview.src = photoURL;
+      photoCacheBust = Date.now();
+      photoPreview.src = withCacheBust(photoURL);
       setPhotoLocked(true);
       renderTemplates();
       photoSuccess.textContent = "Photo saved.";

@@ -53,10 +53,26 @@ const FIELDS = [
 
 let currentId = null;
 let currentSignature = null;
+// See dashboard.js for why: appended only to what's displayed/copied, never
+// saved, so every render is a literally different URL that no cache layer
+// can have a stale matching entry for. Separate values for photo and
+// banner since they're uploaded independently.
+let photoCacheBust = Date.now();
+let bannerCacheBust = Date.now();
+
+function withCacheBust(url, bust) {
+  if (!url) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}v=${bust}`;
+}
 
 function renderTemplates() {
-  previewWithPhoto.innerHTML = buildSignatureHTML(currentSignature, { withPhoto: true });
-  previewNoPhoto.innerHTML = buildSignatureHTML(currentSignature, { withPhoto: false });
+  const displaySignature = {
+    ...currentSignature,
+    photoURL: withCacheBust(currentSignature.photoURL, photoCacheBust),
+    bannerURL: withCacheBust(currentSignature.bannerURL, bannerCacheBust),
+  };
+  previewWithPhoto.innerHTML = buildSignatureHTML(displaySignature, { withPhoto: true });
+  previewNoPhoto.innerHTML = buildSignatureHTML(displaySignature, { withPhoto: false });
 }
 
 async function refreshList() {
@@ -91,18 +107,18 @@ function fillEditor(signature) {
     const el = document.getElementById(key);
     if (el) el.value = signature[key] || "";
   });
-  fontSelect.value = signature.fontFamily || "Inter";
+  fontSelect.value = signature.fontFamily || "Georgia";
   bannerLinkInput.value = signature.bannerLink || "";
 
   if (signature.photoURL) {
-    photoPreview.src = signature.photoURL;
+    photoPreview.src = withCacheBust(signature.photoURL, photoCacheBust);
     photoPreview.hidden = false;
   } else {
     photoPreview.hidden = true;
   }
 
   if (signature.bannerURL) {
-    bannerPreview.src = signature.bannerURL;
+    bannerPreview.src = withCacheBust(signature.bannerURL, bannerCacheBust);
     bannerPreview.hidden = false;
   } else {
     bannerPreview.hidden = true;
@@ -183,7 +199,8 @@ requireAdmin(async () => {
     try {
       const photoURL = await backend.uploadManagedPhoto(currentId, cropped);
       currentSignature = { ...currentSignature, photoURL };
-      photoPreview.src = photoURL;
+      photoCacheBust = Date.now();
+      photoPreview.src = withCacheBust(photoURL, photoCacheBust);
       photoPreview.hidden = false;
       renderTemplates();
       detailsSuccess.textContent = "Photo saved.";
@@ -202,7 +219,8 @@ requireAdmin(async () => {
     try {
       const bannerURL = await backend.uploadManagedBanner(currentId, file);
       currentSignature = { ...currentSignature, bannerURL };
-      bannerPreview.src = bannerURL;
+      bannerCacheBust = Date.now();
+      bannerPreview.src = withCacheBust(bannerURL, bannerCacheBust);
       bannerPreview.hidden = false;
       renderTemplates();
       bannerSuccess.textContent = "Banner saved.";
