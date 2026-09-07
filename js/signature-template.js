@@ -85,7 +85,7 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     .filter(Boolean)
     .map(
       (line) =>
-        `<p style="margin:0 0 3px;font-size:13px;font-weight:600;line-height:1.35;color:${INK};font-family:${font};">${escapeHtml(line)}</p>`
+        `<p style="margin:0;font-size:13px;font-weight:600;line-height:1.35;color:${INK};font-family:${font};">${escapeHtml(line)}</p>`
     )
     .join("");
 
@@ -96,7 +96,7 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
   const contactHtml = contactLines
     .map(
       (line) =>
-        `<p style="margin:0 0 3px;font-size:13px;font-family:${font};color:${INK};">${line}</p>`
+        `<p style="margin:0;font-size:13px;font-family:${font};color:${INK};">${line}</p>`
     )
     .join("");
 
@@ -108,7 +108,7 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     socialIcon("twitter", twitter),
   ].join("");
 
-  const nameHtml = `<p style="margin:0 0 4px;font-size:17px;font-weight:700;color:${TEAL};font-family:${font};">${escapeHtml(fullName)}</p>`;
+  const nameHtml = `<p style="margin:0;font-size:17px;font-weight:700;color:${TEAL};font-family:${font};">${escapeHtml(fullName)}</p>`;
 
   const effectiveBannerSrc = bannerURL || BANNER_PATH;
   const effectiveBannerLink = bannerLink || COLLEGE_WEBSITE_URL;
