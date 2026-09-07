@@ -7,7 +7,11 @@ import { COLLEGE_WEBSITE_URL } from "./app-config.js";
 
 const TEAL = "#0e6f5f";
 const INK = "#1f2d2b";
-const PHOTO_SIZE = 120;
+const PHOTO_SIZE = 130;
+// The whole signature is locked to this width — including the banner — so
+// nothing (the banner in particular) forces the table wider than the rest
+// of the block and throws proportions off.
+const SIGNATURE_WIDTH = 470;
 
 // Relative to the app's own root. Resolved to an absolute URL at copy-time
 // (see dashboard.js) so the copied signature keeps working once it's pasted
@@ -105,24 +109,24 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     <tr>
       <td colspan="2" style="padding-top:0;">
         <a href="${COLLEGE_WEBSITE_URL}" target="_blank" style="display:block;line-height:0;">
-          <img src="${BANNER_PATH}" width="560" style="display:block;width:100%;max-width:560px;border:0;" alt="" />
+          <img src="${BANNER_PATH}" width="${SIGNATURE_WIDTH}" style="display:block;width:100%;max-width:${SIGNATURE_WIDTH}px;border:0;" alt="" />
         </a>
       </td>
     </tr>`;
 
   const photoCell = withPhoto
     ? `
-    <td style="padding-right:18px;vertical-align:middle;">
+    <td style="vertical-align:middle;text-align:center;width:140px;padding:0px 10px 0px 5px;">
       ${
         photoURL
-          ? `<img src="${escapeHtml(photoURL)}" width="${PHOTO_SIZE}" height="${PHOTO_SIZE}" style="width:${PHOTO_SIZE}px;height:${PHOTO_SIZE}px;border-radius:50%;object-fit:cover;display:block;" alt="${escapeHtml(fullName)}" />`
+          ? `<img src="${escapeHtml(photoURL)}" width="${PHOTO_SIZE}" height="${PHOTO_SIZE}" style="width:${PHOTO_SIZE}px;height:${PHOTO_SIZE}px;border-radius:50%;border:3px solid #fff;object-fit:cover;display:block;" alt="${escapeHtml(fullName)}" />`
           : `<div style="width:${PHOTO_SIZE}px;height:${PHOTO_SIZE}px;border-radius:50%;background:#eef3f2;"></div>`
       }
     </td>`
     : "";
 
   return `
-<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:${font};color:${INK};">
+<table width="${SIGNATURE_WIDTH}" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:${SIGNATURE_WIDTH}px;font-family:${font};color:${INK};">
   <tr>
     ${photoCell}
     <td style="vertical-align:top;">
