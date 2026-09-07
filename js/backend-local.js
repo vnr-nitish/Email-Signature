@@ -41,7 +41,7 @@ function blankProfile(email, fullName) {
     youtube: "",
     facebook: "",
     twitter: "",
-    fontFamily: "Inter",
+    fontFamily: "Georgia",
     detailsSubmitted: false,
   };
 }
@@ -61,7 +61,7 @@ function blankManagedSignature() {
     youtube: "",
     facebook: "",
     twitter: "",
-    fontFamily: "Inter",
+    fontFamily: "Georgia",
     bannerURL: "",
     bannerLink: "",
   };

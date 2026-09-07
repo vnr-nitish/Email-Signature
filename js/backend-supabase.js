@@ -60,7 +60,7 @@ function blankProfile(email, fullName) {
     youtube: "",
     facebook: "",
     twitter: "",
-    fontFamily: "Inter",
+    fontFamily: "Georgia",
     detailsSubmitted: false,
   };
 }
@@ -80,7 +80,7 @@ function blankManagedSignature() {
     youtube: "",
     facebook: "",
     twitter: "",
-    fontFamily: "Inter",
+    fontFamily: "Georgia",
     bannerURL: "",
     bannerLink: "",
   };
@@ -153,11 +153,19 @@ export const backend = {
   // construction, which is exactly the "point at a URL, swap the file
   // behind it" mechanism that makes already-sent emails pick up the new
   // photo.
+  //
+  // cacheControl: "0" is what actually makes that work in practice: without
+  // it, Supabase defaults to telling every viewer (your own browser, Gmail's
+  // image proxy, anyone) they can treat this URL as unchanged for a full
+  // hour, so a fresh upload wouldn't visibly show up anywhere until that
+  // cache expired. "0" forces a re-check on every fetch instead — cheap
+  // (a 304 if nothing changed) and correct.
   async uploadPhoto(uid, fileOrBlob) {
     const path = `${uid}/photo.png`;
     const { error: uploadError } = await supabase.storage.from("avatars").upload(path, fileOrBlob, {
       upsert: true,
       contentType: fileOrBlob.type || "image/png",
+      cacheControl: "0",
     });
     if (uploadError) throw uploadError;
 
@@ -214,6 +222,7 @@ export const backend = {
     const { error: uploadError } = await supabase.storage.from("avatars").upload(path, fileOrBlob, {
       upsert: true,
       contentType: fileOrBlob.type || "image/png",
+      cacheControl: "0",
     });
     if (uploadError) throw uploadError;
 
@@ -234,6 +243,7 @@ export const backend = {
     const { error: uploadError } = await supabase.storage.from("banners").upload(path, fileOrBlob, {
       upsert: true,
       contentType: fileOrBlob.type || "image/gif",
+      cacheControl: "0",
     });
     if (uploadError) throw uploadError;
 

@@ -21,19 +21,18 @@ const BANNER_PATH = "assets/banner.gif";
 
 // Only fonts a recipient's own device is likely to already have installed
 // render reliably in an email — clients don't load @font-face/web fonts in
-// mail bodies. Inter, EB Garamond, and Garamond aren't standard system
-// fonts, so they're listed with a safe fallback and will silently drop to
-// that fallback for anyone who doesn't have them installed.
+// mail bodies. Inter and Garamond aren't standard system fonts, so they're
+// listed with a safe fallback and will silently drop to that fallback for
+// anyone who doesn't have them installed.
 export const FONT_OPTIONS = {
-  Inter: "'Inter', Arial, sans-serif",
-  "EB Garamond": "'EB Garamond', Georgia, serif",
   Georgia: "Georgia, 'Times New Roman', serif",
+  Inter: "'Inter', Arial, sans-serif",
   "Comic Sans MS": "'Comic Sans MS', 'Comic Sans', cursive",
   Serif: "serif",
-  Garamond: "Garamond, 'EB Garamond', Georgia, serif",
+  Garamond: "Garamond, Georgia, serif",
   "Trebuchet MS": "'Trebuchet MS', Helvetica, sans-serif",
 };
-const DEFAULT_FONT = "Inter";
+const DEFAULT_FONT = "Georgia";
 
 function fontStack(fontFamily) {
   return FONT_OPTIONS[fontFamily] || FONT_OPTIONS[DEFAULT_FONT];
