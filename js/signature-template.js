@@ -7,12 +7,33 @@ import { COLLEGE_WEBSITE_URL } from "./app-config.js";
 
 const TEAL = "#0e6f5f";
 const INK = "#1f2d2b";
+const PHOTO_SIZE = 120;
 
 // Relative to the app's own root. Resolved to an absolute URL at copy-time
 // (see dashboard.js) so the copied signature keeps working once it's pasted
 // into Gmail and opened from anywhere else.
 const ICON_PATH = (name) => `assets/icons/${name}.png`;
 const BANNER_PATH = "assets/banner.gif";
+
+// Only fonts a recipient's own device is likely to already have installed
+// render reliably in an email — clients don't load @font-face/web fonts in
+// mail bodies. Inter, EB Garamond, and Garamond aren't standard system
+// fonts, so they're listed with a safe fallback and will silently drop to
+// that fallback for anyone who doesn't have them installed.
+export const FONT_OPTIONS = {
+  Inter: "'Inter', Arial, sans-serif",
+  "EB Garamond": "'EB Garamond', Georgia, serif",
+  Georgia: "Georgia, 'Times New Roman', serif",
+  "Comic Sans MS": "'Comic Sans MS', 'Comic Sans', cursive",
+  Serif: "serif",
+  Garamond: "Garamond, 'EB Garamond', Georgia, serif",
+  "Trebuchet MS": "'Trebuchet MS', Helvetica, sans-serif",
+};
+const DEFAULT_FONT = "Inter";
+
+function fontStack(fontFamily) {
+  return FONT_OPTIONS[fontFamily] || FONT_OPTIONS[DEFAULT_FONT];
+}
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({
@@ -46,13 +67,16 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     youtube = "",
     facebook = "",
     twitter = "",
+    fontFamily = DEFAULT_FONT,
   } = profile;
+
+  const font = fontStack(fontFamily);
 
   const infoLines = [program, department, school, campus]
     .filter(Boolean)
     .map(
       (line) =>
-        `<p style="margin:0 0 3px;font-size:13px;font-weight:600;line-height:1.35;color:${INK};font-family:Arial,Helvetica,sans-serif;">${escapeHtml(line)}</p>`
+        `<p style="margin:0 0 3px;font-size:13px;font-weight:600;line-height:1.35;color:${INK};font-family:${font};">${escapeHtml(line)}</p>`
     )
     .join("");
 
@@ -63,7 +87,7 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
   const contactHtml = contactLines
     .map(
       (line) =>
-        `<p style="margin:0 0 3px;font-size:13px;font-family:Arial,Helvetica,sans-serif;color:${INK};">${line}</p>`
+        `<p style="margin:0 0 3px;font-size:13px;font-family:${font};color:${INK};">${line}</p>`
     )
     .join("");
 
@@ -75,11 +99,11 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     socialIcon("twitter", twitter),
   ].join("");
 
-  const nameHtml = `<p style="margin:0 0 4px;font-size:17px;font-weight:700;color:${TEAL};font-family:Arial,Helvetica,sans-serif;">${escapeHtml(fullName)}</p>`;
+  const nameHtml = `<p style="margin:0 0 4px;font-size:17px;font-weight:700;color:${TEAL};font-family:${font};">${escapeHtml(fullName)}</p>`;
 
   const banner = `
     <tr>
-      <td colspan="2" style="padding-top:14px;">
+      <td colspan="2" style="padding-top:0;">
         <a href="${COLLEGE_WEBSITE_URL}" target="_blank" style="display:block;line-height:0;">
           <img src="${BANNER_PATH}" width="560" style="display:block;width:100%;max-width:560px;border:0;" alt="" />
         </a>
@@ -88,17 +112,17 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
 
   const photoCell = withPhoto
     ? `
-    <td style="padding-right:18px;vertical-align:top;">
+    <td style="padding-right:18px;vertical-align:middle;">
       ${
         photoURL
-          ? `<img src="${escapeHtml(photoURL)}" width="84" height="84" style="width:84px;height:84px;border-radius:50%;object-fit:cover;display:block;" alt="${escapeHtml(fullName)}" />`
-          : `<div style="width:84px;height:84px;border-radius:50%;background:#eef3f2;"></div>`
+          ? `<img src="${escapeHtml(photoURL)}" width="${PHOTO_SIZE}" height="${PHOTO_SIZE}" style="width:${PHOTO_SIZE}px;height:${PHOTO_SIZE}px;border-radius:50%;object-fit:cover;display:block;" alt="${escapeHtml(fullName)}" />`
+          : `<div style="width:${PHOTO_SIZE}px;height:${PHOTO_SIZE}px;border-radius:50%;background:#eef3f2;"></div>`
       }
     </td>`
     : "";
 
   return `
-<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;color:${INK};">
+<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:${font};color:${INK};">
   <tr>
     ${photoCell}
     <td style="vertical-align:top;">

@@ -34,6 +34,7 @@ function blankProfile(email, fullName) {
     youtube: "",
     facebook: "",
     twitter: "",
+    fontFamily: "Inter",
     detailsSubmitted: false,
   };
 }

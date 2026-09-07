@@ -1,6 +1,6 @@
 import { backend } from "./backend.js";
 import { requireAuth, wireLogout, getOrCreateProfile } from "./auth-guard.js";
-import { buildSignatureHTML } from "./signature-template.js";
+import { buildSignatureHTML, FONT_OPTIONS } from "./signature-template.js";
 import { openCropper } from "./photo-cropper.js";
 
 wireLogout(document.getElementById("logout-btn"));
@@ -16,6 +16,14 @@ const photoError = document.getElementById("photo-error");
 const previewWithPhoto = document.getElementById("preview-with-photo");
 const previewNoPhoto = document.getElementById("preview-no-photo");
 const copyStatus = document.getElementById("copy-status");
+const fontSelect = document.getElementById("font-select");
+
+Object.keys(FONT_OPTIONS).forEach((name) => {
+  const option = document.createElement("option");
+  option.value = name;
+  option.textContent = name;
+  fontSelect.appendChild(option);
+});
 
 let currentUid = null;
 let profile = null;
@@ -80,7 +88,14 @@ requireAuth(async (user) => {
     setPhotoLocked(false);
   }
 
+  fontSelect.value = profile.fontFamily || "Inter";
   renderTemplates();
+
+  fontSelect.addEventListener("change", async () => {
+    profile = { ...profile, fontFamily: fontSelect.value };
+    renderTemplates();
+    await backend.updateProfile(currentUid, { fontFamily: fontSelect.value });
+  });
 
   document.getElementById("copy-with-photo").addEventListener("click", async () => {
     const ok = await copyNode(previewWithPhoto);
