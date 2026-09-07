@@ -126,10 +126,10 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     : "";
 
   return `
-<table width="${SIGNATURE_WIDTH}" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:${SIGNATURE_WIDTH}px;font-family:${font};color:${INK};">
+<table width="${SIGNATURE_WIDTH}" height="195" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:${SIGNATURE_WIDTH}px;font-family:${font};color:${INK};">
   <tr>
     ${photoCell}
-    <td style="vertical-align:top;">
+    <td style="vertical-align:middle;">
       ${nameHtml}
       ${infoLines}
       <div style="margin-top:10px;">
