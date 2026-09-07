@@ -19,6 +19,6 @@
 // 7. Set BACKEND = "supabase" in js/app-config.js.
 // ============================================================================
 export const supabaseConfig = {
-  url: "PASTE_PROJECT_URL_HERE", // e.g. https://xyzabc.supabase.co
-  anonKey: "PASTE_ANON_PUBLIC_KEY_HERE",
+  url: "https://nuplchxkgftjzokaucar.supabase.co", 
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cGxjaHhrZ2Z0anpva2F1Y2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3ODU0MjUsImV4cCI6MjEwNDM2MTQyNX0.RcoMFY__HsqwKuyf6C0VUWAPMpEwEKo4LZeegmQmNJ8",
 };

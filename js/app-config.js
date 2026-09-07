@@ -13,7 +13,7 @@
 //                Requires the config in supabase-config.js to be filled in
 //                and supabase-schema.sql run once in the Supabase SQL
 //                Editor. See backend-supabase.js and the README.
-export const BACKEND = "local";
+export const BACKEND = "supabase";
 
 // Only Google accounts on these domains may sign in. Enforced twice: right
 // here in the app (immediately signs out and bounces anyone else back to
