@@ -8,9 +8,14 @@
 <body>
   <script type="module">
     import { backend } from "./js/backend.js";
+    import { routeAfterLogin } from "./js/auth-guard.js";
 
     backend.onAuthChange((user) => {
-      window.location.replace(user ? "dashboard.html" : "login.html");
+      if (!user) {
+        window.location.replace("login.html");
+        return;
+      }
+      routeAfterLogin(user);
     });
   </script>
 </body>

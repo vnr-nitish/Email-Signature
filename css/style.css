@@ -155,12 +155,6 @@ body {
   font-size: 13px;
 }
 
-.auth-link {
-  text-align: center;
-  margin-top: 16px;
-  font-size: 14px;
-}
-
 .templates-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));

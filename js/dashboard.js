@@ -133,7 +133,7 @@ requireAuth(async (user) => {
       renderTemplates();
       photoSuccess.textContent = "Photo saved.";
     } catch (err) {
-      photoError.textContent = err.message.replace("Firebase: ", "");
+      photoError.textContent = err.message;
     }
   });
 });

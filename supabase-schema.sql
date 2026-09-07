@@ -25,17 +25,31 @@ create table if not exists profiles (
 
 alter table profiles enable row level security;
 
+-- Keep this list in sync with ALLOWED_EMAIL_DOMAINS in js/app-config.js.
+-- The app already checks this and signs disallowed users straight back
+-- out, but that's only a UX nicety — this function is what actually makes
+-- it impossible for anyone outside these domains to get a profile row or
+-- upload a photo, even if they bypassed the app entirely. Google itself
+-- has no concept of this restriction, so it has to be enforced here.
+create or replace function is_allowed_domain()
+returns boolean
+language sql
+stable
+as $$
+  select split_part(auth.jwt() ->> 'email', '@', 2) in ('gitam.in', 'student.gitam.edu', 'alumni.gitam.edu');
+$$;
+
 -- Any logged-in student can look up any profile (needed so the app can
--- read a profile right after signup, before any other data exists).
+-- read a profile right after login, before any other data exists).
 create policy "Profiles are viewable by authenticated users"
   on profiles for select
   to authenticated
   using (true);
 
-create policy "Users can insert their own profile"
+create policy "Users can insert their own profile from an allowed domain"
   on profiles for insert
   to authenticated
-  with check (auth.uid() = id);
+  with check (auth.uid() = id and is_allowed_domain());
 
 create policy "Users can update their own profile"
   on profiles for update
@@ -55,11 +69,16 @@ create policy "Avatar images are publicly readable"
   using (bucket_id = 'avatars');
 
 -- Each student may only write inside their own "<uid>/..." folder within
--- the bucket, matching the path js/backend-supabase.js uploads to.
-create policy "Users can upload their own avatar"
+-- the bucket, matching the path js/backend-supabase.js uploads to, and
+-- only if their account is on an allowed domain.
+create policy "Users can upload their own avatar from an allowed domain"
   on storage.objects for insert
   to authenticated
-  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+  with check (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+    and is_allowed_domain()
+  );
 
 create policy "Users can overwrite their own avatar"
   on storage.objects for update

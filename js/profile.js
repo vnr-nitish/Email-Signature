@@ -27,6 +27,7 @@ const FIELDS = [
 ];
 
 let currentUid = null;
+let wasAlreadySubmitted = false;
 
 function setLocked(locked) {
   fieldset.disabled = locked;
@@ -42,7 +43,8 @@ requireAuth(async (user) => {
     const el = document.getElementById(key);
     if (el) el.value = data[key] || "";
   });
-  setLocked(Boolean(data.detailsSubmitted));
+  wasAlreadySubmitted = Boolean(data.detailsSubmitted);
+  setLocked(wasAlreadySubmitted);
 });
 
 editBtn.addEventListener("click", () => {
@@ -63,8 +65,11 @@ form.addEventListener("submit", async (e) => {
   try {
     await backend.updateProfile(currentUid, updates);
     setLocked(true);
-    successEl.textContent = "Saved. Click \"Edit Details\" any time to change these.";
+    successEl.innerHTML = wasAlreadySubmitted
+      ? 'Saved. Click "Edit Details" any time to change these.'
+      : 'Saved! Head to your <a href="dashboard.html">dashboard</a> to upload a photo and copy your signature.';
+    wasAlreadySubmitted = true;
   } catch (err) {
-    errorEl.textContent = err.message.replace("Firebase: ", "");
+    errorEl.textContent = err.message;
   }
 });

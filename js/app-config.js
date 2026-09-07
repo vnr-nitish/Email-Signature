@@ -9,17 +9,25 @@
 //                be demoed for real in this mode (see backend-local.js),
 //                and a real photo will make Gmail's signature editor
 //                complain the signature is too long.
-//   "firebase" - real multi-user backend (Auth + Firestore + Storage).
-//                Requires the config in firebase-config.js to be filled in.
 //   "supabase" - real multi-user backend (Auth + Postgres + Storage).
 //                Requires the config in supabase-config.js to be filled in
 //                and supabase-schema.sql run once in the Supabase SQL
 //                Editor. See backend-supabase.js and the README.
 export const BACKEND = "local";
 
-// Optional: restrict sign-up to a specific college email domain.
-// Leave as "" to allow any email address to sign up.
-export const ALLOWED_EMAIL_DOMAIN = "";
+// Only Google accounts on these domains may sign in. Enforced twice: right
+// here in the app (immediately signs out and bounces anyone else back to
+// the login page — see routeAfterLogin/requireAuth in auth-guard.js), and
+// again at the database layer in supabase-schema.sql (a disallowed domain
+// can never get a profile row inserted, even if someone bypassed the app
+// entirely). Google itself has no concept of this restriction, so both
+// layers matter.
+export const ALLOWED_EMAIL_DOMAINS = ["gitam.in", "student.gitam.edu", "alumni.gitam.edu"];
+
+export function isAllowedEmail(email) {
+  const domain = (email || "").split("@")[1]?.toLowerCase();
+  return ALLOWED_EMAIL_DOMAINS.includes(domain);
+}
 
 // Where clicking the signature's bottom banner graphic should go. Same
 // destination for every user (it's the college site), so it's one constant

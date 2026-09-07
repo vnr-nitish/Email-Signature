@@ -1,11 +1,18 @@
 import { backend } from "./backend.js";
+import { isAllowedEmail } from "./app-config.js";
 
-// Redirects to login.html if nobody is signed in. Otherwise calls
-// onUser(user) once the auth state is known.
+// Redirects to login.html if nobody is signed in, or if they're signed in
+// with a disallowed email domain (immediately signed back out). Otherwise
+// calls onUser(user) once the auth state is known.
 export function requireAuth(onUser) {
-  backend.onAuthChange((user) => {
+  backend.onAuthChange(async (user) => {
     if (!user) {
       window.location.href = "login.html";
+      return;
+    }
+    if (!isAllowedEmail(user.email)) {
+      await backend.logOut();
+      window.location.href = "login.html?denied=1";
       return;
     }
     onUser(user);
@@ -22,4 +29,19 @@ export function wireLogout(buttonEl) {
 export async function getOrCreateProfile(uid, email) {
   const data = await backend.getProfile(uid, email);
   return { uid, data };
+}
+
+// The single "where does a freshly-authenticated user land" decision, used
+// right after sign-in (index.html, and login.html for backends whose
+// loginWithGoogle() resolves in place rather than navigating away). New
+// users with nothing saved yet go fill in their profile first; everyone
+// else goes straight to their dashboard.
+export async function routeAfterLogin(user) {
+  if (!isAllowedEmail(user.email)) {
+    await backend.logOut();
+    window.location.href = "login.html?denied=1";
+    return;
+  }
+  const profile = await backend.getProfile(user.uid, user.email);
+  window.location.href = profile.detailsSubmitted ? "dashboard.html" : "profile.html";
 }
