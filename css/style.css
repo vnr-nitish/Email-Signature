@@ -1,0 +1,349 @@
+:root {
+  --teal: #0e6f5f;
+  --teal-dark: #0a5a4d;
+  --ink: #1f2d2b;
+  --muted: #5c6b68;
+  --border: #e2e8e6;
+  --bg: #f4f8f7;
+  --card: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.topbar {
+  background: var(--teal);
+  color: #fff;
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar h1 {
+  font-size: 18px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.topbar a,
+.topbar button {
+  color: #fff;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.topbar a:hover,
+.topbar button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 28px;
+  margin-bottom: 32px;
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 18px;
+  border-bottom: 2px solid var(--teal);
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+}
+
+.auth-card {
+  max-width: 380px;
+  margin: 80px auto;
+}
+
+.field {
+  margin-bottom: 18px;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--teal);
+}
+
+.row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.row .field {
+  flex: 1 1 220px;
+}
+
+.btn {
+  background: var(--teal);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--teal-dark);
+}
+
+.btn.secondary {
+  background: #fff;
+  color: var(--teal);
+  border: 1px solid var(--teal);
+}
+
+.error {
+  color: #b3261e;
+  font-size: 13px;
+  margin-top: 8px;
+  min-height: 16px;
+}
+
+.success {
+  color: var(--teal-dark);
+  font-size: 13px;
+  margin-top: 8px;
+  min-height: 16px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.auth-link {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 24px;
+}
+
+.template-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.template-preview-wrap {
+  padding: 24px;
+  flex: 1;
+  overflow-x: auto;
+}
+
+.template-copy {
+  border-top: 1px solid var(--border);
+  padding: 14px;
+  text-align: center;
+}
+
+/* ---- signature markup (this is what gets copied into Gmail) ---- */
+.sig-table {
+  border-collapse: collapse;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #1f2d2b;
+}
+
+.sig-name {
+  color: var(--teal);
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.sig-line {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 3px;
+  line-height: 1.35;
+}
+
+.sig-contact {
+  font-size: 13px;
+  margin: 10px 0 0;
+}
+
+.sig-photo {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.sig-social {
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--teal);
+  text-align: center;
+  line-height: 26px;
+  margin-right: 6px;
+}
+
+.sig-banner {
+  margin-top: 14px;
+  background: var(--teal);
+  color: #fff;
+  padding: 14px 18px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.upload-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.photo-preview {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: #eef3f2;
+}
+
+/* ---- photo cropper modal ---- */
+.cropper-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 30, 28, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.cropper-modal {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 360px;
+  text-align: center;
+}
+
+.cropper-modal h3 {
+  margin: 0 0 6px;
+}
+
+.cropper-stage {
+  position: relative;
+  margin: 16px auto;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #eef3f2;
+  touch-action: none;
+  cursor: grab;
+}
+
+.cropper-stage canvas {
+  display: block;
+}
+
+.cropper-circle-guide {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2000px rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+
+.cropper-zoom {
+  width: 100%;
+  margin: 8px 0 20px;
+}
+
+.cropper-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* ---- freeze / edit toggle ---- */
+.frozen-note {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 4px 0 18px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 8px 0 22px;
+}
+
+.google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.google-btn:hover {
+  background: #f6f9f8;
+}

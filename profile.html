@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edit Profile · Email Signature Generator</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <h1>Email Signature Generator</h1>
+    <div style="display:flex;gap:10px;">
+      <a href="dashboard.html">Dashboard</a>
+      <button id="logout-btn">Log Out</button>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="card">
+      <h2>Your details</h2>
+      <p class="muted" style="margin-top:-14px;">
+        These appear on every signature template, in this order: name, program, department, school, campus, mobile, website.
+      </p>
+      <p class="frozen-note" id="frozen-note" hidden>
+        Your details are locked. Click "Edit Details" below to change them.
+      </p>
+      <form id="profile-form">
+        <fieldset id="fieldset" style="border:none;padding:0;margin:0;">
+          <div class="field">
+            <label for="fullName">Name</label>
+            <input type="text" id="fullName" required />
+          </div>
+          <div class="field">
+            <label for="program">Program (with course)</label>
+            <input type="text" id="program" placeholder="e.g. B.Tech Computer Science Engineering" />
+          </div>
+          <div class="field">
+            <label for="department">Department</label>
+            <input type="text" id="department" />
+          </div>
+          <div class="field">
+            <label for="school">School</label>
+            <input type="text" id="school" />
+          </div>
+          <div class="field">
+            <label for="campus">Campus</label>
+            <input type="text" id="campus" />
+          </div>
+          <div class="field">
+            <label for="mobile">Mobile number</label>
+            <input type="text" id="mobile" />
+          </div>
+          <div class="field">
+            <label for="website">Website</label>
+            <input type="url" id="website" placeholder="https://" />
+          </div>
+
+          <h2 style="margin-top:28px;">Social links (optional)</h2>
+          <p class="muted" style="margin-top:-14px;">
+            Only the icons for the links you fill in will show up on your signature.
+          </p>
+          <div class="row">
+            <div class="field">
+              <label for="linkedin">LinkedIn URL</label>
+              <input type="url" id="linkedin" />
+            </div>
+            <div class="field">
+              <label for="instagram">Instagram URL</label>
+              <input type="url" id="instagram" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="youtube">YouTube URL</label>
+              <input type="url" id="youtube" />
+            </div>
+            <div class="field">
+              <label for="facebook">Facebook URL</label>
+              <input type="url" id="facebook" />
+            </div>
+            <div class="field">
+              <label for="twitter">X (Twitter) URL</label>
+              <input type="url" id="twitter" />
+            </div>
+          </div>
+        </fieldset>
+
+        <button class="btn" type="submit" id="save-btn">Save Details</button>
+        <button class="btn secondary" type="button" id="edit-btn" hidden>Edit Details</button>
+        <div class="success" id="success"></div>
+        <div class="error" id="error"></div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="js/profile.js"></script>
+</body>
+</html>

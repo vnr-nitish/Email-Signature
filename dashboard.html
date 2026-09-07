@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard · Email Signature Generator</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <h1>Email Signature Generator</h1>
+    <div style="display:flex;gap:10px;">
+      <a href="profile.html">Edit Profile</a>
+      <button id="logout-btn">Log Out</button>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="card">
+      <h2>Your photo</h2>
+      <div class="upload-row" id="photo-locked-view" hidden>
+        <img id="photo-preview" class="photo-preview" alt="" />
+        <button class="btn secondary" type="button" id="change-photo-btn">Change Photo</button>
+      </div>
+      <div class="field" id="photo-form" style="max-width:360px;">
+        <label for="photo">Upload your email signature photo</label>
+        <input type="file" id="photo" accept="image/*" />
+        <p class="muted" style="margin-top:6px;">You'll be able to drag and zoom to frame your face before it's saved.</p>
+      </div>
+      <div class="success" id="photo-success"></div>
+      <div class="error" id="photo-error"></div>
+    </div>
+
+    <div class="card">
+      <h2>Choose email signature templates</h2>
+      <div class="templates-grid">
+        <div class="template-card">
+          <div class="template-preview-wrap" id="preview-with-photo"></div>
+          <div class="template-copy">
+            <button class="btn secondary" id="copy-with-photo">Copy Signature</button>
+          </div>
+        </div>
+        <div class="template-card">
+          <div class="template-preview-wrap" id="preview-no-photo"></div>
+          <div class="template-copy">
+            <button class="btn secondary" id="copy-no-photo">Copy Signature</button>
+          </div>
+        </div>
+      </div>
+      <div class="success" id="copy-status" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email Signature Generator</title>
+</head>
+<body>
+  <script type="module">
+    import { backend } from "./js/backend.js";
+
+    backend.onAuthChange((user) => {
+      window.location.replace(user ? "dashboard.html" : "login.html");
+    });
+  </script>
+</body>
+</html>
