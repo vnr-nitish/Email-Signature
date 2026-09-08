@@ -12,6 +12,16 @@
   box-sizing: border-box;
 }
 
+/* The browser's own [hidden] rule (display:none) has lower priority than
+   ANY author-stylesheet rule, even one with equal selector specificity -
+   so elements like #tabs-bar (class="sig-tabs", which sets display:flex)
+   or #photo-locked-view (class="upload-row", which sets display:flex)
+   never actually hide just because their hidden attribute is set to true.
+   This forces [hidden] to always win, everywhere on the site. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: "Segoe UI", Arial, sans-serif;
@@ -26,6 +36,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .topbar h1 {
@@ -375,6 +388,10 @@ body {
   background: var(--card);
   border-right: 1px solid var(--border);
   padding: 20px 14px;
+  position: sticky;
+  top: 61px; /* sits directly below the sticky .topbar */
+  height: calc(100vh - 61px);
+  overflow-y: auto;
 }
 
 .sig-sidebar-item {
@@ -386,7 +403,7 @@ body {
   text-align: left;
   padding: 10px 12px;
   border-radius: 6px;
-  border: none;
+  border: 1px solid #000;
   background: none;
   font-size: 14px;
   cursor: pointer;
@@ -400,6 +417,7 @@ body {
 
 .sig-sidebar-item.active {
   background: var(--teal);
+  border-color: var(--teal);
   color: #fff;
   font-weight: 600;
 }
