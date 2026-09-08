@@ -170,11 +170,11 @@ body {
 
 .templates-grid {
   display: grid;
-  /* Wide enough for the 470px-wide signature plus this wrapper's own
+  /* Wide enough for the 600px-wide signature plus this wrapper's own
      padding, so it never needs to scroll — on a narrower window there's
      no room for two of these side by side, so it wraps to one column
      instead of shrinking each one until it has to scroll. */
-  grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(650px, 1fr));
   gap: 24px;
 }
 
@@ -190,6 +190,10 @@ body {
 .template-preview-wrap {
   padding: 24px;
   flex: 1;
+  /* Safety net for a name/title/institute combo long enough to still not
+     fit on one line even at the signature's 600px width - scrolls instead
+     of silently clipping text. */
+  overflow-x: auto;
 }
 
 .template-copy {
