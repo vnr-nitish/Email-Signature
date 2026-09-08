@@ -305,7 +305,14 @@ requireSignatureAccess(async (user) => {
     setMainView("example");
   }
 
-  exampleBtn.addEventListener("click", () => setMainView("example"));
+  exampleBtn.addEventListener("click", () => {
+    // Clear the selection so the sidebar doesn't keep highlighting
+    // whichever real signature was open before - "See an example" isn't
+    // one of your own signatures.
+    currentId = null;
+    renderSidebar();
+    setMainView("example");
+  });
 
   newSignatureBtn.addEventListener("click", async () => {
     const name = prompt("Name this signature (e.g. your other company or organization):");
