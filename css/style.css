@@ -345,25 +345,26 @@ body {
   background: #f6f9f8;
 }
 
-/* ---- signatures.html: sidebar + tabs layout ---- */
+/* ---- signatures.html: full-height sidebar + main app shell ----
+   The sidebar is a persistent panel flush to the left edge, spanning the
+   full height of the row below the topbar (like a real app nav) — it is
+   NOT boxed inside the same centered/max-width container as the main
+   content, which is what was eating into the main content's width and
+   forcing the two signature-template previews to stack instead of
+   sitting side by side. Only .sig-main gets a max-width/centering, so
+   the sidebar's footprint no longer competes with it for space. */
 .sig-layout {
   display: flex;
-  align-items: flex-start;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 32px 24px 64px;
-  gap: 24px;
+  align-items: stretch;
+  min-height: calc(100vh - 61px); /* 61px ~= .topbar's rendered height */
 }
 
 .sig-sidebar {
   width: 240px;
   flex-shrink: 0;
   background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
-  position: sticky;
-  top: 32px;
+  border-right: 1px solid var(--border);
+  padding: 20px 14px;
 }
 
 .sig-sidebar-item {
@@ -396,6 +397,8 @@ body {
 .sig-main {
   flex: 1;
   min-width: 0;
+  max-width: 1400px;
+  padding: 32px 24px 64px;
 }
 
 .sig-tabs {
