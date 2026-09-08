@@ -164,14 +164,18 @@ export const backend = {
   },
 
   // A Supabase public bucket's URL for a given path never changes on its
-  // own — no token trick needed. Just upload to the same "<id>/photo.png"
-  // path every time (upsert: true) and the URL is permanently stable by
-  // construction, which is exactly the "point at a URL, swap the file
-  // behind it" mechanism that makes already-sent emails pick up the new
-  // photo. cacheControl:"0" plus the app's own render-time cache-busting
-  // (see signatures.js) are what make that visible promptly in practice.
-  async uploadPhoto(id, fileOrBlob) {
-    const path = `${id}/photo.png`;
+  // own — no token trick needed. Just upload to the same path every time
+  // (upsert: true) and the URL is permanently stable by construction,
+  // which is exactly the "point at a URL, swap the file behind it"
+  // mechanism that makes already-sent emails pick up the new photo.
+  // cacheControl:"0" plus the app's own render-time cache-busting (see
+  // signatures.js) are what make that visible promptly in practice.
+  //
+  // The path is "<owner-uid>/<signature-id>/photo.png" — owner-uid first
+  // on purpose, so the storage RLS policy can be a single, trivial
+  // comparison against auth.uid() with no subquery/join at all.
+  async uploadPhoto(ownerUid, id, fileOrBlob) {
+    const path = `${ownerUid}/${id}/photo.png`;
     const { error: uploadError } = await supabase.storage.from("avatars").upload(path, fileOrBlob, {
       upsert: true,
       contentType: fileOrBlob.type || "image/png",
@@ -191,8 +195,8 @@ export const backend = {
   // `contentType`) is what tells browsers/email clients how to render it,
   // not the URL. That keeps this URL stable even if a different format is
   // uploaded later (gif -> png, say).
-  async uploadBanner(id, fileOrBlob) {
-    const path = `${id}/banner`;
+  async uploadBanner(ownerUid, id, fileOrBlob) {
+    const path = `${ownerUid}/${id}/banner`;
     const { error: uploadError } = await supabase.storage.from("banners").upload(path, fileOrBlob, {
       upsert: true,
       contentType: fileOrBlob.type || "image/gif",

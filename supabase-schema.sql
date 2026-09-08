@@ -94,19 +94,15 @@ create policy "Signature files are publicly readable"
   to public
   using (bucket_id in ('avatars', 'banners'));
 
--- Each file lives at "<signature-id>/...". Whoever owns that signature
--- (checked via a lookup into the signatures table above) can write there,
--- in either bucket.
+-- Each file lives at "<owner-uid>/<signature-id>/...". Owner id first on
+-- purpose: the policy is then a single, trivial comparison against
+-- auth.uid() with no subquery/join at all.
 create policy "Owners can upload files for their own signatures"
   on storage.objects for insert
   to authenticated
   with check (
     bucket_id in ('avatars', 'banners')
-    and exists (
-      select 1 from public.signatures s
-      where s.id::text = split_part(name, '/', 1)
-      and s.owner_id = auth.uid()
-    )
+    and split_part(name, '/', 1) = auth.uid()::text
   );
 
 create policy "Owners can overwrite files for their own signatures"
@@ -114,9 +110,5 @@ create policy "Owners can overwrite files for their own signatures"
   to authenticated
   using (
     bucket_id in ('avatars', 'banners')
-    and exists (
-      select 1 from public.signatures s
-      where s.id::text = split_part(name, '/', 1)
-      and s.owner_id = auth.uid()
-    )
+    and split_part(name, '/', 1) = auth.uid()::text
   );

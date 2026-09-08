@@ -81,9 +81,10 @@ select
 from managed_signatures
 on conflict (id) do nothing;
 
--- Storage: any signature's owner may read/write its own
--- "<signature-id>/..." folder in either bucket. This replaces both the
--- old per-uid avatar policies and the old admin-only managed/banner ones.
+-- Storage: each file lives at "<owner-uid>/<signature-id>/...". Owner id
+-- first on purpose, so the policy is a single, trivial comparison against
+-- auth.uid() with no subquery/join at all. This replaces both the old
+-- per-uid avatar policies and the old admin-only managed/banner ones.
 drop policy if exists "Users can upload their own avatar from an allowed domain" on storage.objects;
 drop policy if exists "Users can overwrite their own avatar" on storage.objects;
 drop policy if exists "Only the admin can manage photos for managed signatures" on storage.objects;
@@ -94,11 +95,7 @@ create policy "Owners can upload files for their own signatures"
   to authenticated
   with check (
     bucket_id in ('avatars', 'banners')
-    and exists (
-      select 1 from public.signatures s
-      where s.id::text = split_part(name, '/', 1)
-      and s.owner_id = auth.uid()
-    )
+    and split_part(name, '/', 1) = auth.uid()::text
   );
 
 create policy "Owners can overwrite files for their own signatures"
@@ -106,11 +103,7 @@ create policy "Owners can overwrite files for their own signatures"
   to authenticated
   using (
     bucket_id in ('avatars', 'banners')
-    and exists (
-      select 1 from public.signatures s
-      where s.id::text = split_part(name, '/', 1)
-      and s.owner_id = auth.uid()
-    )
+    and split_part(name, '/', 1) = auth.uid()::text
   );
 
 -- Old tables are no longer used by the app once BACKEND points at the new

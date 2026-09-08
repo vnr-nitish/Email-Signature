@@ -165,13 +165,15 @@ export const backend = {
   // a data URL isn't a live link — it's baked into the copied HTML at copy
   // time. That behavior needs a real backend (Supabase) with a public,
   // stable file URL. See backend-supabase.js.
-  async uploadPhoto(id, fileOrBlob) {
+  // ownerUid is unused here (no real storage paths in demo mode) but kept
+  // in the signature to match backend-supabase.js.
+  async uploadPhoto(ownerUid, id, fileOrBlob) {
     const dataUrl = await readFileAsDataURL(fileOrBlob);
     await this.updateSignature(id, { photoURL: dataUrl });
     return dataUrl;
   },
 
-  async uploadBanner(id, fileOrBlob) {
+  async uploadBanner(ownerUid, id, fileOrBlob) {
     const dataUrl = await readFileAsDataURL(fileOrBlob);
     await this.updateSignature(id, { bannerURL: dataUrl });
     return dataUrl;

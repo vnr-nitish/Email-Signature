@@ -313,7 +313,7 @@ requireSignatureAccess(async (user) => {
     photoSuccess.textContent = "";
     photoError.textContent = "";
     try {
-      const photoURL = await backend.uploadPhoto(currentId, cropped);
+      const photoURL = await backend.uploadPhoto(currentUid, currentId, cropped);
       currentSignature = { ...currentSignature, photoURL };
       photoCacheBust = Date.now();
       photoPreview.src = withCacheBust(photoURL, photoCacheBust);
@@ -339,7 +339,7 @@ requireSignatureAccess(async (user) => {
     bannerSuccess.textContent = "";
     bannerError.textContent = "";
     try {
-      const bannerURL = await backend.uploadBanner(currentId, cropped);
+      const bannerURL = await backend.uploadBanner(currentUid, currentId, cropped);
       currentSignature = { ...currentSignature, bannerURL };
       bannerCacheBust = Date.now();
       bannerPreview.src = withCacheBust(bannerURL, bannerCacheBust);
