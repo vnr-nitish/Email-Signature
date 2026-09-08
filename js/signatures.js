@@ -40,12 +40,18 @@ const FIELDS = [
   "campus",
   "mobile",
   "website",
+  "websiteLabel",
   "linkedin",
   "instagram",
   "youtube",
   "facebook",
   "twitter",
 ];
+
+// Matches assets/banner.gif's own proportions (912x212), so a custom
+// banner ends up sized consistently with the default one once it's scaled
+// to the signature's fixed width.
+const BANNER_ASPECT_RATIO = 912 / 212;
 
 const sidebarListEl = document.getElementById("sidebar-list");
 const newSignatureBtn = document.getElementById("new-signature-btn");
@@ -167,6 +173,7 @@ function fillPhotoBanner(sig) {
     photoPreview.src = withCacheBust(sig.photoURL, photoCacheBust);
     setPhotoLocked(true);
   } else {
+    photoPreview.removeAttribute("src");
     setPhotoLocked(false);
   }
 
@@ -177,6 +184,7 @@ function fillPhotoBanner(sig) {
       bannerPreview.src = withCacheBust(sig.bannerURL, bannerCacheBust);
       bannerPreview.hidden = false;
     } else {
+      bannerPreview.removeAttribute("src");
       bannerPreview.hidden = true;
     }
   }
@@ -320,12 +328,18 @@ requireSignatureAccess(async (user) => {
   bannerInput.addEventListener("change", async () => {
     const file = bannerInput.files[0];
     if (!file) return;
+    const cropped = await openCropper(file, {
+      shape: "rect",
+      aspectRatio: BANNER_ASPECT_RATIO,
+      outputWidth: 940,
+    });
     bannerInput.value = "";
+    if (!cropped) return; // user cancelled
 
     bannerSuccess.textContent = "";
     bannerError.textContent = "";
     try {
-      const bannerURL = await backend.uploadBanner(currentId, file);
+      const bannerURL = await backend.uploadBanner(currentId, cropped);
       currentSignature = { ...currentSignature, bannerURL };
       bannerCacheBust = Date.now();
       bannerPreview.src = withCacheBust(bannerURL, bannerCacheBust);

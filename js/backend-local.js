@@ -26,6 +26,7 @@ function blankSignature(name, isDefault) {
     campus: "",
     mobile: "",
     website: "",
+    websiteLabel: "",
     photoURL: "",
     linkedin: "",
     instagram: "",

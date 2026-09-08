@@ -71,9 +71,12 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     facebook = "",
     twitter = "",
     fontFamily = DEFAULT_FONT,
-    // Per-signature overrides, set by the admin panel for a
-    // managed (non-GITAM) signature. A self-service student signature
-    // never has these set, so it always falls back to the defaults.
+    websiteLabel = "",
+    // true only for the auto-created "GITAM Signature". Everything else
+    // (created via "+ New Signature") is a custom signature for another
+    // organization, so it must NEVER fall back to GITAM's own banner/link
+    // just because it hasn't uploaded one yet.
+    isDefault = false,
     bannerURL = "",
     bannerLink = "",
   } = profile;
@@ -90,7 +93,10 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
 
   const contactLines = [];
   if (mobile) contactLines.push(`<b>M</b> ${escapeHtml(mobile)}`);
-  if (website) contactLines.push(`<a href="${escapeHtml(website)}" style="color:${INK};text-decoration:none;" target="_blank">${escapeHtml(website)}</a>`);
+  if (website) {
+    const linkText = websiteLabel || website;
+    contactLines.push(`<a href="${escapeHtml(website)}" style="color:${INK};text-decoration:none;" target="_blank">${escapeHtml(linkText)}</a>`);
+  }
 
   const contactHtml = contactLines
     .map(
@@ -109,17 +115,22 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
 
   const nameHtml = `<p style="margin:0;font-size:17px;font-weight:700;color:${TEAL};font-family:${font};">${escapeHtml(fullName)}</p>`;
 
-  const effectiveBannerSrc = bannerURL || BANNER_PATH;
-  const effectiveBannerLink = bannerLink || COLLEGE_WEBSITE_URL;
+  // The default GITAM signature always shows the shared banner. Any other
+  // signature shows its OWN uploaded banner if it has one, and otherwise
+  // no banner at all — it must never silently borrow GITAM's.
+  const effectiveBannerSrc = isDefault ? BANNER_PATH : bannerURL;
+  const effectiveBannerLink = isDefault ? COLLEGE_WEBSITE_URL : bannerLink || COLLEGE_WEBSITE_URL;
 
-  const banner = `
+  const banner = effectiveBannerSrc
+    ? `
     <tr>
       <td colspan="2" style="padding-top:0;">
         <a href="${escapeHtml(effectiveBannerLink)}" target="_blank" style="display:block;line-height:0;">
           <img src="${escapeHtml(effectiveBannerSrc)}" width="${SIGNATURE_WIDTH}" style="display:block;width:100%;max-width:${SIGNATURE_WIDTH}px;border:0;" alt="" />
         </a>
       </td>
-    </tr>`;
+    </tr>`
+    : "";
 
   const photoCell = withPhoto
     ? `

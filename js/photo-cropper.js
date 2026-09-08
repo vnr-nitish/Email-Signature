@@ -1,19 +1,33 @@
-// A small circular crop/zoom/pan tool. Opens a modal over the current page,
-// lets the user drag the photo and adjust zoom so their face sits inside the
-// circle guide, and resolves with a cropped PNG Blob when they confirm.
+// A small crop/zoom/pan tool. Opens a modal over the current page, lets the
+// user drag the image and adjust zoom to frame it inside the guide, and
+// resolves with a cropped PNG Blob when they confirm. Used both for the
+// circular profile photo and (with a rectangular shape) for a custom
+// signature's banner, so the guide/output shape is configurable.
 //
-// Usage: const blob = await openCropper(file); // null if the user cancels
+// Usage:
+//   const blob = await openCropper(file); // circular, 320x320 (default)
+//   const blob = await openCropper(file, {
+//     shape: "rect", aspectRatio: 912 / 212, outputWidth: 940,
+//   }); // rectangular, aspect-ratio locked
+// Resolves null if the user cancels.
 
-const OUTPUT_SIZE = 320; // px, the final square/circular photo saved
-const PREVIEW_SIZE = 280; // px, the on-screen crop circle
+const PREVIEW_WIDTH = 320;
 // Starting zoom above 1x guarantees there's draggable slack in BOTH
-// directions from the first frame, even for a photo whose shorter side
-// already exactly fills the circle (at exactly 1x that axis can't be
+// directions from the first frame, even for an image whose shorter side
+// already exactly fills the frame (at exactly 1x that axis can't be
 // panned at all, which made repositioning impossible until you touched
 // the slider first).
 const INITIAL_ZOOM = 1.3;
 
-export function openCropper(file) {
+export function openCropper(file, options = {}) {
+  const shape = options.shape || "circle";
+  const isRect = shape === "rect";
+  const aspectRatio = isRect ? options.aspectRatio || 1 : 1;
+  const previewWidth = PREVIEW_WIDTH;
+  const previewHeight = isRect ? Math.round(PREVIEW_WIDTH / aspectRatio) : PREVIEW_WIDTH;
+  const outputWidth = options.outputWidth || (isRect ? 940 : 320);
+  const outputHeight = isRect ? Math.round(outputWidth / aspectRatio) : outputWidth;
+
   return new Promise((resolve) => {
     const imageUrl = URL.createObjectURL(file);
     const img = new Image();
@@ -23,16 +37,20 @@ export function openCropper(file) {
       overlay.className = "cropper-overlay";
       overlay.innerHTML = `
         <div class="cropper-modal">
-          <h3>Adjust your photo</h3>
-          <p class="muted">Drag the photo to reposition your face inside the circle. Use the slider to zoom in or out.</p>
-          <div class="cropper-stage" style="width:${PREVIEW_SIZE}px;height:${PREVIEW_SIZE}px;">
-            <canvas width="${PREVIEW_SIZE}" height="${PREVIEW_SIZE}"></canvas>
-            <div class="cropper-circle-guide"></div>
+          <h3>${isRect ? "Adjust your banner" : "Adjust your photo"}</h3>
+          <p class="muted">${
+            isRect
+              ? "Drag to reposition, use the slider to zoom, to fit your banner in the frame."
+              : "Drag the photo to reposition your face inside the circle. Use the slider to zoom in or out."
+          }</p>
+          <div class="cropper-stage" style="width:${previewWidth}px;height:${previewHeight}px;">
+            <canvas width="${previewWidth}" height="${previewHeight}"></canvas>
+            ${isRect ? "" : '<div class="cropper-circle-guide"></div>'}
           </div>
           <input type="range" class="cropper-zoom" min="1" max="4" step="0.01" value="${INITIAL_ZOOM}" />
           <div class="cropper-actions">
             <button type="button" class="btn secondary" data-action="cancel">Cancel</button>
-            <button type="button" class="btn" data-action="confirm">Use Photo</button>
+            <button type="button" class="btn" data-action="confirm">${isRect ? "Use Banner" : "Use Photo"}</button>
           </div>
         </div>`;
       document.body.appendChild(overlay);
@@ -41,9 +59,9 @@ export function openCropper(file) {
       const ctx = canvas.getContext("2d");
       const zoomSlider = overlay.querySelector(".cropper-zoom");
 
-      // Base scale so the image's shorter side exactly fills the preview,
-      // then the zoom slider multiplies on top of that.
-      const baseScale = PREVIEW_SIZE / Math.min(img.width, img.height);
+      // Base scale so the image fully covers the preview frame (like CSS
+      // object-fit: cover), then the zoom slider multiplies on top of that.
+      const baseScale = Math.max(previewWidth / img.width, previewHeight / img.height);
       let zoom = INITIAL_ZOOM;
       let offsetX = 0; // pan, in preview px, relative to centered position
       let offsetY = 0;
@@ -52,12 +70,12 @@ export function openCropper(file) {
         const scale = baseScale * zoom;
         const drawW = img.width * scale;
         const drawH = img.height * scale;
-        const x = (PREVIEW_SIZE - drawW) / 2 + offsetX;
-        const y = (PREVIEW_SIZE - drawH) / 2 + offsetY;
+        const x = (previewWidth - drawW) / 2 + offsetX;
+        const y = (previewHeight - drawH) / 2 + offsetY;
 
-        ctx.clearRect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
+        ctx.clearRect(0, 0, previewWidth, previewHeight);
         ctx.fillStyle = "#eef3f2";
-        ctx.fillRect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
+        ctx.fillRect(0, 0, previewWidth, previewHeight);
         ctx.drawImage(img, x, y, drawW, drawH);
       }
 
@@ -65,8 +83,8 @@ export function openCropper(file) {
         const scale = baseScale * zoom;
         const drawW = img.width * scale;
         const drawH = img.height * scale;
-        const maxOffsetX = Math.max(0, (drawW - PREVIEW_SIZE) / 2);
-        const maxOffsetY = Math.max(0, (drawH - PREVIEW_SIZE) / 2);
+        const maxOffsetX = Math.max(0, (drawW - previewWidth) / 2);
+        const maxOffsetY = Math.max(0, (drawH - previewHeight) / 2);
         offsetX = Math.min(maxOffsetX, Math.max(-maxOffsetX, offsetX));
         offsetY = Math.min(maxOffsetY, Math.max(-maxOffsetY, offsetY));
       }
@@ -126,20 +144,25 @@ export function openCropper(file) {
       });
 
       overlay.querySelector('[data-action="confirm"]').addEventListener("click", () => {
-        const scale = (baseScale * zoom * OUTPUT_SIZE) / PREVIEW_SIZE;
+        const ratio = outputWidth / previewWidth;
+        const scale = baseScale * zoom * ratio;
         const drawW = img.width * scale;
         const drawH = img.height * scale;
-        const x = (OUTPUT_SIZE - drawW) / 2 + offsetX * (OUTPUT_SIZE / PREVIEW_SIZE);
-        const y = (OUTPUT_SIZE - drawH) / 2 + offsetY * (OUTPUT_SIZE / PREVIEW_SIZE);
+        const x = (outputWidth - drawW) / 2 + offsetX * ratio;
+        const y = (outputHeight - drawH) / 2 + offsetY * ratio;
 
         const outCanvas = document.createElement("canvas");
-        outCanvas.width = OUTPUT_SIZE;
-        outCanvas.height = OUTPUT_SIZE;
+        outCanvas.width = outputWidth;
+        outCanvas.height = outputHeight;
         const outCtx = outCanvas.getContext("2d");
 
         outCtx.save();
         outCtx.beginPath();
-        outCtx.arc(OUTPUT_SIZE / 2, OUTPUT_SIZE / 2, OUTPUT_SIZE / 2, 0, Math.PI * 2);
+        if (isRect) {
+          outCtx.rect(0, 0, outputWidth, outputHeight);
+        } else {
+          outCtx.arc(outputWidth / 2, outputHeight / 2, outputWidth / 2, 0, Math.PI * 2);
+        }
         outCtx.closePath();
         outCtx.clip();
         outCtx.drawImage(img, x, y, drawW, drawH);

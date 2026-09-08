@@ -54,6 +54,7 @@ create table if not exists signatures (
   campus text default '',
   mobile text default '',
   website text default '',
+  website_label text default '',
   photo_url text default '',
   linkedin text default '',
   instagram text default '',
