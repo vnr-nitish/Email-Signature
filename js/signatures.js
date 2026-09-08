@@ -7,6 +7,25 @@ import { getIconUrls } from "./icon-recolor.js";
 
 wireLogout(document.getElementById("logout-btn"));
 
+// draggable="false" + -webkit-user-drag:none on the <img> itself (see
+// signature-template.js) isn't always enough on its own to stop Chrome's
+// native drag-out on these on-site preview thumbnails, so back it up with
+// an explicit dragstart block. This only protects the previews *on this
+// site* - once a signature is pasted into Gmail and sent, no page JS runs
+// inside the recipient's mail client, so an image at a public URL can
+// still be dragged/saved there. There's no way to prevent that for an
+// already-sent email; only the auto-updating-photo trick relies on that
+// same public URL being fetchable.
+document.addEventListener(
+  "dragstart",
+  (e) => {
+    if (e.target instanceof HTMLImageElement && e.target.closest(".template-preview-wrap, .upload-row")) {
+      e.preventDefault();
+    }
+  },
+  true
+);
+
 // program/department/school/campus are the same four columns for every
 // signature — only the labels shown to the user change depending on
 // whether this is the default GITAM signature or a custom one for

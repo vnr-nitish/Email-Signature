@@ -88,7 +88,16 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     // js/signatures.js when a non-default signature picks a custom icon
     // color. Falls back to the default teal PNG assets when absent.
     iconUrls = null,
+    // Raw hex color backing iconUrls above - applied to the name too, so a
+    // custom signature's name matches its icons instead of always being
+    // GITAM teal.
+    iconColor = null,
   } = profile;
+
+  // The default GITAM signature's name always stays GITAM teal; any other
+  // signature's name follows whatever icon color it picked (teal itself is
+  // just the default color for those too, until changed).
+  const nameColor = isDefault ? TEAL : iconColor || TEAL;
 
   const font = fontStack(fontFamily);
 
@@ -127,7 +136,7 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     socialIcon("twitter", twitter, iconUrls),
   ].join("");
 
-  const nameHtml = `<p style="margin:0;font-size:17px;font-weight:700;color:${TEAL};font-family:${font};">${escapeHtml(fullName)}</p>`;
+  const nameHtml = `<p style="margin:0;font-size:17px;font-weight:700;color:${nameColor};font-family:${font};">${escapeHtml(fullName)}</p>`;
 
   // The default GITAM signature always shows the shared banner. Any other
   // signature shows its OWN uploaded banner if it has one, and otherwise
