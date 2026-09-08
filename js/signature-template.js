@@ -7,6 +7,10 @@ import { COLLEGE_WEBSITE_URL } from "./app-config.js";
 
 const TEAL = "#0e6f5f";
 const INK = "#1f2d2b";
+// The color assets/icons/*.png ship in. A non-default signature can pick a
+// different one (see js/signatures.js, which recolors those PNGs on the
+// fly); the default GITAM signature always stays this color.
+export const DEFAULT_ICON_COLOR = TEAL;
 const PHOTO_SIZE = 130;
 // The whole signature is locked to this width — including the banner — so
 // nothing (the banner in particular) forces the table wider than the rest
@@ -48,11 +52,12 @@ function escapeHtml(value) {
   }[c]));
 }
 
-function socialIcon(iconName, url) {
+function socialIcon(iconName, url, iconUrls) {
   if (!url) return "";
   const safeUrl = escapeHtml(url);
+  const src = (iconUrls && iconUrls[iconName]) || ICON_PATH(iconName);
   return `
-    <a href="${safeUrl}" target="_blank" style="display:inline-block;margin-right:8px;line-height:0;"><img src="${ICON_PATH(iconName)}" width="26" height="26" style="width:26px;height:26px;display:block;border:0;" alt="${iconName}" /></a>`;
+    <a href="${safeUrl}" target="_blank" style="display:inline-block;margin-right:8px;line-height:0;"><img src="${escapeHtml(src)}" width="26" height="26" style="width:26px;height:26px;display:block;border:0;" alt="${iconName}" /></a>`;
 }
 
 export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true }) {
@@ -79,15 +84,24 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     isDefault = false,
     bannerURL = "",
     bannerLink = "",
+    // Pre-recolored data-URI overrides for the 5 social icons, computed by
+    // js/signatures.js when a non-default signature picks a custom icon
+    // color. Falls back to the default teal PNG assets when absent.
+    iconUrls = null,
   } = profile;
 
   const font = fontStack(fontFamily);
 
+  // 12.5px rather than 13px buys a little width headroom so longer lines
+  // (department/institute names especially) are more likely to fit on one
+  // line across fonts — deliberately NOT forcing white-space:nowrap here,
+  // since that would either clip long text or force the whole signature
+  // wider than the fixed 470px width the banner and layout depend on.
   const infoLines = [program, department, school, campus]
     .filter(Boolean)
     .map(
       (line) =>
-        `<p style="margin:0;font-size:13px;font-weight:600;line-height:1.35;color:${INK};font-family:${font};">${escapeHtml(line)}</p>`
+        `<p style="margin:0;font-size:12.5px;font-weight:600;line-height:1.35;color:${INK};font-family:${font};">${escapeHtml(line)}</p>`
     )
     .join("");
 
@@ -106,11 +120,11 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     .join("");
 
   const socialsHtml = [
-    socialIcon("linkedin", linkedin),
-    socialIcon("instagram", instagram),
-    socialIcon("youtube", youtube),
-    socialIcon("facebook", facebook),
-    socialIcon("twitter", twitter),
+    socialIcon("linkedin", linkedin, iconUrls),
+    socialIcon("instagram", instagram, iconUrls),
+    socialIcon("youtube", youtube, iconUrls),
+    socialIcon("facebook", facebook, iconUrls),
+    socialIcon("twitter", twitter, iconUrls),
   ].join("");
 
   const nameHtml = `<p style="margin:0;font-size:17px;font-weight:700;color:${TEAL};font-family:${font};">${escapeHtml(fullName)}</p>`;

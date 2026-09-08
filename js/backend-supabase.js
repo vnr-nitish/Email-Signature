@@ -27,6 +27,7 @@ const FIELD_MAP = {
   fontFamily: "font_family",
   bannerURL: "banner_url",
   bannerLink: "banner_link",
+  iconColor: "icon_color",
   detailsSubmitted: "details_submitted",
 };
 
@@ -67,6 +68,7 @@ function blankSignature(name, isDefault) {
     fontFamily: "Georgia",
     bannerURL: "",
     bannerLink: "",
+    iconColor: "#0e6f5f", // matches DEFAULT_ICON_COLOR in signature-template.js
     detailsSubmitted: false,
   };
 }

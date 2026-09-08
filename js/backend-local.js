@@ -36,6 +36,7 @@ function blankSignature(name, isDefault) {
     fontFamily: "Georgia",
     bannerURL: "",
     bannerLink: "",
+    iconColor: "#0e6f5f", // matches DEFAULT_ICON_COLOR in signature-template.js
     detailsSubmitted: false,
   };
 }

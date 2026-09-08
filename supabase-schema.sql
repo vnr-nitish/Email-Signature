@@ -64,6 +64,7 @@ create table if not exists signatures (
   font_family text default 'Georgia',
   banner_url text default '',
   banner_link text default '',
+  icon_color text default '#0e6f5f',
   details_submitted boolean not null default false,
   created_at timestamptz default now()
 );

@@ -1,8 +1,9 @@
 import { backend } from "./backend.js";
 import { requireSignatureAccess, wireLogout } from "./auth-guard.js";
-import { buildSignatureHTML, FONT_OPTIONS } from "./signature-template.js";
+import { buildSignatureHTML, FONT_OPTIONS, DEFAULT_ICON_COLOR } from "./signature-template.js";
 import { openCropper } from "./photo-cropper.js";
 import { copySignatureNode } from "./copy-signature.js";
+import { getIconUrls } from "./icon-recolor.js";
 
 wireLogout(document.getElementById("logout-btn"));
 
@@ -85,6 +86,9 @@ const bannerLinkInput = document.getElementById("bannerLink");
 const saveBannerLinkBtn = document.getElementById("save-banner-link-btn");
 const bannerSuccess = document.getElementById("banner-success");
 const bannerError = document.getElementById("banner-error");
+
+const iconColorCard = document.getElementById("icon-color-card");
+const iconColorInput = document.getElementById("icon-color");
 
 const fontSelect = document.getElementById("font-select");
 const previewWithPhoto = document.getElementById("preview-with-photo");
@@ -189,6 +193,9 @@ function fillPhotoBanner(sig) {
     }
   }
 
+  iconColorCard.hidden = sig.isDefault;
+  iconColorInput.value = sig.iconColor || DEFAULT_ICON_COLOR;
+
   fontSelect.value = sig.fontFamily || "Georgia";
   photoSuccess.textContent = "";
   photoError.textContent = "";
@@ -196,11 +203,17 @@ function fillPhotoBanner(sig) {
   bannerError.textContent = "";
 }
 
-function renderTemplates() {
+async function renderTemplates() {
+  const renderingId = currentId; // guards against a slower, older call
+  // overwriting a newer one after switching signatures mid-recolor.
+  const iconUrls = currentSignature.isDefault ? null : await getIconUrls(currentSignature.iconColor);
+  if (renderingId !== currentId) return;
+
   const displaySignature = {
     ...currentSignature,
     photoURL: withCacheBust(currentSignature.photoURL, photoCacheBust),
     bannerURL: withCacheBust(currentSignature.bannerURL, bannerCacheBust),
+    iconUrls,
   };
   previewWithPhoto.innerHTML = buildSignatureHTML(displaySignature, { withPhoto: true });
   previewNoPhoto.innerHTML = buildSignatureHTML(displaySignature, { withPhoto: false });
@@ -298,6 +311,12 @@ requireSignatureAccess(async (user) => {
     await backend.updateSignature(currentId, { fontFamily: fontSelect.value });
   });
 
+  iconColorInput.addEventListener("change", async () => {
+    currentSignature = { ...currentSignature, iconColor: iconColorInput.value };
+    renderTemplates();
+    await backend.updateSignature(currentId, { iconColor: iconColorInput.value });
+  });
+
   changePhotoBtn.addEventListener("click", () => {
     setPhotoLocked(false);
     photoSuccess.textContent = "";
@@ -359,8 +378,14 @@ requireSignatureAccess(async (user) => {
   saveBannerLinkBtn.addEventListener("click", async () => {
     bannerSuccess.textContent = "";
     bannerError.textContent = "";
+
+    const bannerLink = bannerLinkInput.value.trim();
+    if (!bannerLink) {
+      bannerError.textContent = "Enter a link first — nothing was saved.";
+      return;
+    }
+
     try {
-      const bannerLink = bannerLinkInput.value.trim();
       await backend.updateSignature(currentId, { bannerLink });
       currentSignature = { ...currentSignature, bannerLink };
       renderTemplates();
