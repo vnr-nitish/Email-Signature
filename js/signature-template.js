@@ -12,6 +12,10 @@ const INK = "#1f2d2b";
 // fly); the default GITAM signature always stays this color.
 export const DEFAULT_ICON_COLOR = TEAL;
 const PHOTO_SIZE = 130;
+// Must match the photoCell markup below (width:140px + 5px/10px padding) -
+// kept as a constant so the info-line auto-shrink logic knows exactly how
+// much horizontal room is left for text once the photo column is there.
+const PHOTO_CELL_TOTAL_WIDTH = 155;
 // The whole signature is locked to this width — including the banner — so
 // nothing (the banner in particular) forces the table wider than the rest
 // of the block and throws proportions off.
@@ -40,6 +44,30 @@ const DEFAULT_FONT = "Georgia";
 
 function fontStack(fontFamily) {
   return FONT_OPTIONS[fontFamily] || FONT_OPTIONS[DEFAULT_FONT];
+}
+
+// Lazily-created, reused canvas 2D context purely for measuring text width
+// in pixels - lets the info lines below auto-shrink their own font-size
+// just enough to stay on one line, without touching the signature's
+// overall width/dimensions to make room.
+let measureCtx = null;
+function textWidthPx(text, fontSizePx, fontWeight, fontFamily) {
+  if (!measureCtx) {
+    measureCtx = document.createElement("canvas").getContext("2d");
+  }
+  measureCtx.font = `${fontWeight} ${fontSizePx}px ${fontFamily}`;
+  return measureCtx.measureText(text).width;
+}
+
+const INFO_BASE_FONT_SIZE = 12.5;
+const INFO_MIN_FONT_SIZE = 9;
+// Only shrinks a line when it doesn't already fit at the base size -
+// otherwise every line keeps rendering at 12.5px exactly as before.
+function infoLineFontSize(text, maxWidthPx, fontFamily) {
+  const width = textWidthPx(text, INFO_BASE_FONT_SIZE, 600, fontFamily);
+  if (width <= maxWidthPx) return INFO_BASE_FONT_SIZE;
+  const scaled = INFO_BASE_FONT_SIZE * (maxWidthPx / width);
+  return Math.max(INFO_MIN_FONT_SIZE, Math.round(scaled * 10) / 10);
 }
 
 function escapeHtml(value) {
@@ -101,17 +129,17 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
 
   const font = fontStack(fontFamily);
 
-  // 12.5px rather than 13px buys a little width headroom so longer lines
-  // (department/institute names especially) are more likely to fit on one
-  // line across fonts — deliberately NOT forcing white-space:nowrap here,
-  // since that would either clip long text or force the whole signature
-  // wider than the fixed 470px width the banner and layout depend on.
+  // Each line is forced onto one row (nowrap) and auto-shrinks its own
+  // font-size just enough to fit the space actually available - the photo
+  // column eats into that space when withPhoto is true - rather than
+  // wrapping onto a second line or changing the signature's own width.
+  const infoMaxWidth = (withPhoto ? SIGNATURE_WIDTH - PHOTO_CELL_TOTAL_WIDTH : SIGNATURE_WIDTH) - 10;
   const infoLines = [program, department, school, campus]
     .filter(Boolean)
-    .map(
-      (line) =>
-        `<p style="margin:0;font-size:12.5px;font-weight:600;line-height:1.35;color:${INK};font-family:${font};">${escapeHtml(line)}</p>`
-    )
+    .map((line) => {
+      const size = infoLineFontSize(line, infoMaxWidth, font);
+      return `<p style="margin:0;font-size:${size}px;font-weight:600;line-height:1.35;color:${INK};font-family:${font};white-space:nowrap;">${escapeHtml(line)}</p>`;
+    })
     .join("");
 
   const contactLines = [];
