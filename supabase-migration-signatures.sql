@@ -95,8 +95,8 @@ create policy "Owners can upload files for their own signatures"
   with check (
     bucket_id in ('avatars', 'banners')
     and exists (
-      select 1 from signatures s
-      where s.id::text = (storage.foldername(name))[1]
+      select 1 from public.signatures s
+      where s.id::text = split_part(name, '/', 1)
       and s.owner_id = auth.uid()
     )
   );
@@ -107,8 +107,8 @@ create policy "Owners can overwrite files for their own signatures"
   using (
     bucket_id in ('avatars', 'banners')
     and exists (
-      select 1 from signatures s
-      where s.id::text = (storage.foldername(name))[1]
+      select 1 from public.signatures s
+      where s.id::text = split_part(name, '/', 1)
       and s.owner_id = auth.uid()
     )
   );
