@@ -3,12 +3,13 @@ import { supabaseConfig } from "./supabase-config.js";
 
 const supabase = createClient(supabaseConfig.url, supabaseConfig.anonKey);
 
-// The app's profile object uses camelCase everywhere (see the other
-// backend adapters); Postgres/Supabase convention is snake_case columns.
-// This map is the single place that translates between the two, so the
-// rest of the app never needs to know which convention the DB uses.
+// The app's signature object uses camelCase everywhere; Postgres/Supabase
+// convention is snake_case columns. This map is the single place that
+// translates between the two, so the rest of the app never needs to know
+// the DB's naming convention.
 const FIELD_MAP = {
-  email: "email",
+  name: "name",
+  isDefault: "is_default",
   fullName: "full_name",
   program: "program",
   department: "department",
@@ -23,50 +24,31 @@ const FIELD_MAP = {
   facebook: "facebook",
   twitter: "twitter",
   fontFamily: "font_family",
-  detailsSubmitted: "details_submitted",
   bannerURL: "banner_url",
   bannerLink: "banner_link",
+  detailsSubmitted: "details_submitted",
 };
 
-function toDbRow(partialProfile) {
+function toDbRow(partial) {
   const row = {};
   for (const [appKey, dbKey] of Object.entries(FIELD_MAP)) {
-    if (appKey in partialProfile) row[dbKey] = partialProfile[appKey];
+    if (appKey in partial) row[dbKey] = partial[appKey];
   }
   return row;
 }
 
 function fromDbRow(row) {
-  const profile = {};
+  const sig = { id: row.id };
   for (const [appKey, dbKey] of Object.entries(FIELD_MAP)) {
-    profile[appKey] = row[dbKey];
+    sig[appKey] = row[dbKey];
   }
-  return profile;
+  return sig;
 }
 
-function blankProfile(email, fullName) {
+function blankSignature(name, isDefault) {
   return {
-    email,
-    fullName,
-    program: "",
-    department: "",
-    school: "",
-    campus: "",
-    mobile: "",
-    website: "",
-    photoURL: "",
-    linkedin: "",
-    instagram: "",
-    youtube: "",
-    facebook: "",
-    twitter: "",
-    fontFamily: "Georgia",
-    detailsSubmitted: false,
-  };
-}
-
-function blankManagedSignature() {
-  return {
+    name,
+    isDefault,
     fullName: "",
     program: "",
     department: "",
@@ -83,6 +65,7 @@ function blankManagedSignature() {
     fontFamily: "Georgia",
     bannerURL: "",
     bannerLink: "",
+    detailsSubmitted: false,
   };
 }
 
@@ -94,8 +77,8 @@ function toAppUser(user) {
 export const backend = {
   // Real password auth for the one admin account — separate from the
   // Google flow students use. Nothing about this checks the GITAM domain
-  // restriction; the caller (requireAdmin in auth-guard.js) checks the
-  // signed-in email against ADMIN_EMAIL instead.
+  // restriction; the signature ownership policy allows the admin account
+  // in independently (see is_admin() in the schema).
   async adminLogin({ email, password }) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
@@ -105,8 +88,7 @@ export const backend = {
   // Supabase's OAuth flow is a full-page redirect (not a popup): the
   // browser navigates to Google and back, landing on `redirectTo`. There's
   // nothing meaningful to return here — index.html's own post-redirect
-  // page load is what picks the new session up via onAuthChange and routes
-  // the user to profile.html or dashboard.html (see auth-guard.js).
+  // page load is what picks the new session up via onAuthChange.
   async loginWithGoogle() {
     const redirectTo = new URL("index.html", window.location.href).href;
     const { error } = await supabase.auth.signInWithOAuth({
@@ -130,38 +112,64 @@ export const backend = {
     return () => subscription.unsubscribe();
   },
 
-  async getProfile(uid, email) {
-    const { data, error } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
+  async listSignatures(ownerUid) {
+    const { data, error } = await supabase
+      .from("signatures")
+      .select("*")
+      .eq("owner_id", ownerUid)
+      .order("created_at", { ascending: true });
     if (error) throw error;
-    if (data) return fromDbRow(data);
-
-    const blank = blankProfile(email, "");
-    const { error: insertError } = await supabase.from("profiles").insert({ id: uid, ...toDbRow(blank) });
-    if (insertError) throw insertError;
-    return blank;
+    return data.map(fromDbRow);
   },
 
-  async updateProfile(uid, updates) {
-    const { error } = await supabase.from("profiles").update(toDbRow(updates)).eq("id", uid);
+  async getSignature(id) {
+    const { data, error } = await supabase.from("signatures").select("*").eq("id", id).maybeSingle();
+    if (error) throw error;
+    return data ? fromDbRow(data) : null;
+  },
+
+  // Called right after a real GITAM Google login. If this account has no
+  // signatures at all yet, seeds one default "GITAM Signature" — but only
+  // once ever per empty state, so deleting it later doesn't force it back
+  // unless they're down to zero signatures again.
+  async ensureAtLeastOneSignature(ownerUid) {
+    const existing = await this.listSignatures(ownerUid);
+    if (existing.length > 0) return existing;
+    const created = await this.createSignature(ownerUid, "GITAM Signature", true);
+    return [created];
+  },
+
+  async createSignature(ownerUid, name, isDefault = false) {
+    const blank = blankSignature(name, isDefault);
+    const { data, error } = await supabase
+      .from("signatures")
+      .insert({ owner_id: ownerUid, ...toDbRow(blank) })
+      .select()
+      .single();
+    if (error) throw error;
+    return fromDbRow(data);
+  },
+
+  async updateSignature(id, updates) {
+    const { error } = await supabase.from("signatures").update(toDbRow(updates)).eq("id", id);
     if (error) throw error;
     return updates;
+  },
+
+  async deleteSignature(id) {
+    const { error } = await supabase.from("signatures").delete().eq("id", id);
+    if (error) throw error;
   },
 
   // A Supabase public bucket's URL for a given path never changes on its
-  // own — no token trick needed. Just upload to the same "<uid>/photo.png"
+  // own — no token trick needed. Just upload to the same "<id>/photo.png"
   // path every time (upsert: true) and the URL is permanently stable by
   // construction, which is exactly the "point at a URL, swap the file
   // behind it" mechanism that makes already-sent emails pick up the new
-  // photo.
-  //
-  // cacheControl: "0" is what actually makes that work in practice: without
-  // it, Supabase defaults to telling every viewer (your own browser, Gmail's
-  // image proxy, anyone) they can treat this URL as unchanged for a full
-  // hour, so a fresh upload wouldn't visibly show up anywhere until that
-  // cache expired. "0" forces a re-check on every fetch instead — cheap
-  // (a 304 if nothing changed) and correct.
-  async uploadPhoto(uid, fileOrBlob) {
-    const path = `${uid}/photo.png`;
+  // photo. cacheControl:"0" plus the app's own render-time cache-busting
+  // (see signatures.js) are what make that visible promptly in practice.
+  async uploadPhoto(id, fileOrBlob) {
+    const path = `${id}/photo.png`;
     const { error: uploadError } = await supabase.storage.from("avatars").upload(path, fileOrBlob, {
       upsert: true,
       contentType: fileOrBlob.type || "image/png",
@@ -173,72 +181,15 @@ export const backend = {
       data: { publicUrl },
     } = supabase.storage.from("avatars").getPublicUrl(path);
 
-    await this.updateProfile(uid, { photoURL: publicUrl });
-    return publicUrl;
-  },
-
-  // ---- Admin-managed signatures ----
-  // These aren't tied to any auth.users row at all — the admin creates one
-  // per organization/person they're building a signature for, entirely
-  // independent of student self-service accounts. Row-level security in
-  // supabase-schema.sql restricts this whole table to the admin account.
-
-  async listManagedSignatures() {
-    const { data, error } = await supabase
-      .from("managed_signatures")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return data.map((row) => ({ id: row.id, ...fromDbRow(row) }));
-  },
-
-  async getManagedSignature(id) {
-    const { data, error } = await supabase.from("managed_signatures").select("*").eq("id", id).maybeSingle();
-    if (error) throw error;
-    return data ? { id: data.id, ...fromDbRow(data) } : null;
-  },
-
-  async createManagedSignature() {
-    const id = crypto.randomUUID();
-    const blank = blankManagedSignature();
-    const { error } = await supabase.from("managed_signatures").insert({ id, ...toDbRow(blank) });
-    if (error) throw error;
-    return { id, ...blank };
-  },
-
-  async saveManagedSignature(id, updates) {
-    const { error } = await supabase.from("managed_signatures").update(toDbRow(updates)).eq("id", id);
-    if (error) throw error;
-    return updates;
-  },
-
-  async deleteManagedSignature(id) {
-    const { error } = await supabase.from("managed_signatures").delete().eq("id", id);
-    if (error) throw error;
-  },
-
-  async uploadManagedPhoto(id, fileOrBlob) {
-    const path = `managed/${id}/photo.png`;
-    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, fileOrBlob, {
-      upsert: true,
-      contentType: fileOrBlob.type || "image/png",
-      cacheControl: "0",
-    });
-    if (uploadError) throw uploadError;
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("avatars").getPublicUrl(path);
-
-    await this.saveManagedSignature(id, { photoURL: publicUrl });
+    await this.updateSignature(id, { photoURL: publicUrl });
     return publicUrl;
   },
 
   // No fixed extension in the path — Content-Type metadata (set above via
   // `contentType`) is what tells browsers/email clients how to render it,
-  // not the URL. That keeps this URL stable even if the admin re-uploads a
-  // banner in a different format later (gif -> png, say).
-  async uploadManagedBanner(id, fileOrBlob) {
+  // not the URL. That keeps this URL stable even if a different format is
+  // uploaded later (gif -> png, say).
+  async uploadBanner(id, fileOrBlob) {
     const path = `${id}/banner`;
     const { error: uploadError } = await supabase.storage.from("banners").upload(path, fileOrBlob, {
       upsert: true,
@@ -251,7 +202,7 @@ export const backend = {
       data: { publicUrl },
     } = supabase.storage.from("banners").getPublicUrl(path);
 
-    await this.saveManagedSignature(id, { bannerURL: publicUrl });
+    await this.updateSignature(id, { bannerURL: publicUrl });
     return publicUrl;
   },
 };

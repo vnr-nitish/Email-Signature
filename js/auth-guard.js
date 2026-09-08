@@ -1,20 +1,22 @@
 import { backend } from "./backend.js";
 import { isAllowedEmail, ADMIN_EMAIL } from "./app-config.js";
 
-// Redirects to login.html if nobody is signed in, or if they're signed in
-// with a disallowed email domain (immediately signed back out). Otherwise
-// calls onUser(user) once the auth state is known.
+function isAuthorized(user) {
+  return Boolean(user) && (user.email === ADMIN_EMAIL || isAllowedEmail(user.email));
+}
+
+// Guards signatures.html — the one shared page both a GITAM student
+// (Google sign-in) and the admin account (email/password) land on. Anyone
+// else is signed out and bounced to the login page.
 //
 // Only ever acts on the FIRST auth event, on purpose: Supabase silently
 // re-fires this same callback whenever the tab regains focus (it's
 // rechecking/refreshing the session token in the background), not just on
-// actual sign-in. Pages using this to populate a form from saved data were
-// re-running that population logic on every one of those re-checks,
-// clobbering whatever the user had typed but not saved yet — exactly what
-// happened when switching tabs mid-edit. A real logout still works fine
-// without reacting to further events here, since wireLogout() redirects
-// explicitly on its own.
-export function requireAuth(onUser) {
+// actual sign-in. Reacting to every one of those re-checks was clobbering
+// whatever the user had typed but not saved yet on tab-switch. A real
+// logout still works fine without reacting to further events here, since
+// wireLogout() redirects explicitly on its own.
+export function requireSignatureAccess(onUser) {
   let handled = false;
   backend.onAuthChange(async (user) => {
     if (handled) return;
@@ -24,28 +26,9 @@ export function requireAuth(onUser) {
       window.location.href = "login.html";
       return;
     }
-    if (!isAllowedEmail(user.email)) {
+    if (!isAuthorized(user)) {
       await backend.logOut();
       window.location.href = "login.html?denied=1";
-      return;
-    }
-    onUser(user);
-  });
-}
-
-// Separate from requireAuth on purpose: the admin account is a plain Gmail
-// address, not a @gitam.in/etc one, so it must never be run through the
-// student domain check. Only admin.html uses this. See the "only the first
-// event" note on requireAuth above — same reasoning applies here.
-export function requireAdmin(onUser) {
-  let handled = false;
-  backend.onAuthChange(async (user) => {
-    if (handled) return;
-    handled = true;
-
-    if (!user || user.email !== ADMIN_EMAIL) {
-      await backend.logOut();
-      window.location.href = "admin-login.html";
       return;
     }
     onUser(user);
@@ -59,22 +42,20 @@ export function wireLogout(buttonEl) {
   });
 }
 
-export async function getOrCreateProfile(uid, email) {
-  const data = await backend.getProfile(uid, email);
-  return { uid, data };
-}
-
 // The single "where does a freshly-authenticated user land" decision, used
-// right after sign-in (index.html, and login.html for backends whose
-// loginWithGoogle() resolves in place rather than navigating away). New
-// users with nothing saved yet go fill in their profile first; everyone
-// else goes straight to their dashboard.
+// right after Google sign-in (index.html, and login.html for backends
+// whose loginWithGoogle() resolves in place rather than navigating away).
+// A real GITAM student gets a default "GITAM Signature" seeded the first
+// time they have zero signatures; everyone else just proceeds to whatever
+// they already have.
 export async function routeAfterLogin(user) {
-  if (!isAllowedEmail(user.email)) {
+  if (!isAuthorized(user)) {
     await backend.logOut();
     window.location.href = "login.html?denied=1";
     return;
   }
-  const profile = await backend.getProfile(user.uid, user.email);
-  window.location.href = profile.detailsSubmitted ? "dashboard.html" : "profile.html";
+  if (isAllowedEmail(user.email)) {
+    await backend.ensureAtLeastOneSignature(user.uid);
+  }
+  window.location.href = "signatures.html";
 }

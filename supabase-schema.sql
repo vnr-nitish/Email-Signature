@@ -1,49 +1,19 @@
 -- Run this once in the Supabase SQL Editor (Project > SQL Editor > New query)
--- after creating your project and before setting BACKEND = "supabase".
+-- for a FRESH project, before setting BACKEND = "supabase". If you already
+-- ran an earlier version of this file (with separate profiles/
+-- managed_signatures tables), use supabase-migration-signatures.sql
+-- instead — it transitions your existing data to this same end state.
 
 create extension if not exists pgcrypto;
 
--- If your project has "Automatically expose new tables" turned OFF (under
--- Project Settings > Data API — recommended, since it's stricter by
--- default), new tables don't get Data API access automatically. These two
--- grants are the manual equivalent for the tables this app actually uses.
--- RLS policies below still control what each grant can actually see/touch
--- row-by-row — a grant alone doesn't bypass RLS, it just lets a request
--- reach the RLS check at all. (Harmless to re-run if the setting was ON —
--- it just makes explicit what would have happened automatically.)
 grant usage on schema public to authenticated;
-
--- One row per student, keyed by their auth.users id.
-create table if not exists profiles (
-  id uuid primary key references auth.users on delete cascade,
-  email text default '',
-  full_name text default '',
-  program text default '',
-  department text default '',
-  school text default '',
-  campus text default '',
-  mobile text default '',
-  website text default '',
-  photo_url text default '',
-  linkedin text default '',
-  instagram text default '',
-  youtube text default '',
-  facebook text default '',
-  twitter text default '',
-  font_family text default 'Inter',
-  details_submitted boolean default false,
-  created_at timestamptz default now()
-);
-
-alter table profiles enable row level security;
-grant select, insert, update, delete on profiles to authenticated;
 
 -- Keep this list in sync with ALLOWED_EMAIL_DOMAINS in js/app-config.js.
 -- The app already checks this and signs disallowed users straight back
 -- out, but that's only a UX nicety — this function is what actually makes
--- it impossible for anyone outside these domains to get a profile row or
--- upload a photo, even if they bypassed the app entirely. Google itself
--- has no concept of this restriction, so it has to be enforced here.
+-- it impossible for anyone outside these domains to get a signature row,
+-- even if someone bypassed the app entirely. Google itself has no concept
+-- of this restriction, so it has to be enforced here.
 create or replace function is_allowed_domain()
 returns boolean
 language sql
@@ -53,9 +23,8 @@ as $$
 $$;
 
 -- Keep this in sync with ADMIN_EMAIL in js/app-config.js. This is what
--- actually restricts the managed_signatures table and the banners bucket
--- to the one admin account, independent of anything the app's JavaScript
--- does.
+-- actually lets the admin account own signatures despite not being on an
+-- allowed domain, independent of anything the app's JavaScript does.
 create or replace function is_admin()
 returns boolean
 language sql
@@ -64,60 +33,20 @@ as $$
   select auth.jwt() ->> 'email' = 'nitishraj.vinnakota2212@gmail.com';
 $$;
 
--- Any logged-in student can look up any profile (needed so the app can
--- read a profile right after login, before any other data exists).
-create policy "Profiles are viewable by authenticated users"
-  on profiles for select
-  to authenticated
-  using (true);
-
-create policy "Users can insert their own profile from an allowed domain"
-  on profiles for insert
-  to authenticated
-  with check (auth.uid() = id and is_allowed_domain());
-
-create policy "Users can update their own profile"
-  on profiles for update
-  to authenticated
-  using (auth.uid() = id);
-
--- Public bucket for profile photos. Public read is required: Gmail (and
--- every other email client) fetches the <img src="..."> directly, with no
--- Supabase session attached at all.
-insert into storage.buckets (id, name, public)
-values ('avatars', 'avatars', true)
-on conflict (id) do nothing;
-
-create policy "Avatar images are publicly readable"
-  on storage.objects for select
-  to public
-  using (bucket_id = 'avatars');
-
--- Each student may only write inside their own "<uid>/..." folder within
--- the bucket, matching the path js/backend-supabase.js uploads to, and
--- only if their account is on an allowed domain.
-create policy "Users can upload their own avatar from an allowed domain"
-  on storage.objects for insert
-  to authenticated
-  with check (
-    bucket_id = 'avatars'
-    and (storage.foldername(name))[1] = auth.uid()::text
-    and is_allowed_domain()
-  );
-
-create policy "Users can overwrite their own avatar"
-  on storage.objects for update
-  to authenticated
-  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
-
--- ============================================================================
--- Admin panel: signatures the admin builds directly, for any person or
--- organization — not tied to any auth.users row at all (the subject of the
--- signature never logs in; only the admin manages it).
--- ============================================================================
-
-create table if not exists managed_signatures (
+-- One row per signature. A student's first login auto-creates one flagged
+-- is_default = true ("GITAM Signature"); any account (student or admin)
+-- can create any number of additional ones for other affiliations. Every
+-- signature belongs to exactly one authenticated owner — there's no
+-- "signature with no login" concept anymore (see the admin panel note in
+-- the README for why that changed).
+create table if not exists signatures (
   id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users on delete cascade,
+  name text not null default 'My Signature',
+  is_default boolean not null default false,
+  -- program/department/school/campus double as designation/wing/
+  -- institute/location for a non-default signature — same four slots,
+  -- just relabeled per signature type in the UI (see js/signatures.js).
   full_name text default '',
   program text default '',
   department text default '',
@@ -131,44 +60,62 @@ create table if not exists managed_signatures (
   youtube text default '',
   facebook text default '',
   twitter text default '',
-  font_family text default 'Inter',
+  font_family text default 'Georgia',
   banner_url text default '',
   banner_link text default '',
+  details_submitted boolean not null default false,
   created_at timestamptz default now()
 );
 
-alter table managed_signatures enable row level security;
-grant select, insert, update, delete on managed_signatures to authenticated;
+alter table signatures enable row level security;
+grant select, insert, update, delete on signatures to authenticated;
 
-create policy "Only the admin can manage signatures"
-  on managed_signatures for all
+-- A signature can be created only by an allowed-domain student or the
+-- admin account — the same two ways anyone can be authenticated at all
+-- (Google sign-in is domain-gated in the app, and admin-login.html is the
+-- only other way in). Once a signature exists, its owner can freely
+-- read/update/delete it — no further domain check needed there.
+create policy "Users manage their own signatures"
+  on signatures for all
   to authenticated
-  using (is_admin())
-  with check (is_admin());
+  using (auth.uid() = owner_id)
+  with check (auth.uid() = owner_id and (is_allowed_domain() or is_admin()));
 
--- Public bucket for admin-uploaded banner graphics (one per managed
--- signature, at "<signature-id>/banner"). Public read for the same reason
--- as avatars: email clients fetch it with no session at all.
+-- Public buckets for signature photos and custom banners. Public read is
+-- required: Gmail (and every other email client) fetches the <img
+-- src="..."> directly, with no Supabase session attached at all.
 insert into storage.buckets (id, name, public)
-values ('banners', 'banners', true)
+values ('avatars', 'avatars', true), ('banners', 'banners', true)
 on conflict (id) do nothing;
 
-create policy "Banner images are publicly readable"
+create policy "Signature files are publicly readable"
   on storage.objects for select
   to public
-  using (bucket_id = 'banners');
+  using (bucket_id in ('avatars', 'banners'));
 
-create policy "Only the admin can manage banner uploads"
-  on storage.objects for all
+-- Each file lives at "<signature-id>/...". Whoever owns that signature
+-- (checked via a lookup into the signatures table above) can write there,
+-- in either bucket.
+create policy "Owners can upload files for their own signatures"
+  on storage.objects for insert
   to authenticated
-  using (bucket_id = 'banners' and is_admin())
-  with check (bucket_id = 'banners' and is_admin());
+  with check (
+    bucket_id in ('avatars', 'banners')
+    and exists (
+      select 1 from signatures s
+      where s.id::text = (storage.foldername(name))[1]
+      and s.owner_id = auth.uid()
+    )
+  );
 
--- The admin also uploads photos for managed signatures into the existing
--- avatars bucket, under a "managed/<id>/..." prefix (separate from each
--- student's own "<uid>/" folder, so it can't collide with a real uid).
-create policy "Only the admin can manage photos for managed signatures"
-  on storage.objects for all
+create policy "Owners can overwrite files for their own signatures"
+  on storage.objects for update
   to authenticated
-  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = 'managed' and is_admin())
-  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = 'managed' and is_admin());
+  using (
+    bucket_id in ('avatars', 'banners')
+    and exists (
+      select 1 from signatures s
+      where s.id::text = (storage.foldername(name))[1]
+      and s.owner_id = auth.uid()
+    )
+  );

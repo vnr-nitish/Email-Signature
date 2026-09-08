@@ -15,11 +15,12 @@
 //                Editor. See backend-supabase.js and the README.
 export const BACKEND = "supabase";
 
-// Only Google accounts on these domains may sign in. Enforced twice: right
-// here in the app (immediately signs out and bounces anyone else back to
-// the login page — see routeAfterLogin/requireAuth in auth-guard.js), and
-// again at the database layer in supabase-schema.sql (a disallowed domain
-// can never get a profile row inserted, even if someone bypassed the app
+// Only Google accounts on these domains may sign in and get a default
+// "GITAM Signature" auto-created. Enforced twice: right here in the app
+// (immediately signs out and bounces anyone else back to the login page —
+// see routeAfterLogin/requireSignatureAccess in auth-guard.js), and again
+// at the database layer in supabase-schema.sql (a disallowed domain can
+// never get a signature row inserted, even if someone bypassed the app
 // entirely). Google itself has no concept of this restriction, so both
 // layers matter.
 export const ALLOWED_EMAIL_DOMAINS = ["gitam.in", "student.gitam.edu", "alumni.gitam.edu"];
@@ -30,17 +31,20 @@ export function isAllowedEmail(email) {
 }
 
 // Where clicking the signature's bottom banner graphic should go by
-// default. Individual admin-managed signatures can override this with
-// their own banner image + link (see managed_signatures in the schema);
-// self-service student signatures always use this default.
+// default. Any non-default signature (created via "+ New Signature") can
+// override this with its own banner image + link; the default "GITAM
+// Signature" always uses this.
 export const COLLEGE_WEBSITE_URL = "https://www.gitam.edu";
 
-// The one account allowed into admin.html. This is just an identifier, not
-// a secret, so it's fine hardcoded here — change it any time. The actual
-// password is NOT stored anywhere in this codebase: create/change it
-// directly in the Supabase dashboard (Authentication > Users), since this
-// repo is public and a password committed here would be visible to anyone.
-// If you change this email, also update is_admin() in supabase-schema.sql
-// to match (re-run that CREATE OR REPLACE FUNCTION block in the SQL
-// Editor) — both places enforce the same restriction independently.
+// The one account allowed to log in via admin-login.html. This is just an
+// identifier, not a secret, so it's fine hardcoded here — change it any
+// time. The actual password is NOT stored anywhere in this codebase:
+// create/change it directly in the Supabase dashboard (Authentication >
+// Users), since this repo is public and a password committed here would
+// be visible to anyone. If you change this email, also update is_admin()
+// in supabase-schema.sql to match (re-run that CREATE OR REPLACE FUNCTION
+// block in the SQL Editor) — both places enforce the same restriction
+// independently. Once logged in, the admin account lands on the same
+// signatures.html page as everyone else — it just doesn't get a default
+// signature auto-created, and can create as many custom ones as it likes.
 export const ADMIN_EMAIL = "nitishraj.vinnakota2212@gmail.com";

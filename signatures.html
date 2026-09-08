@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email Signature Generator</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <h1>Email Signature Generator</h1>
+    <button id="logout-btn">Log Out</button>
+  </div>
+
+  <div class="sig-layout">
+    <aside class="sig-sidebar">
+      <div id="sidebar-list"></div>
+      <button class="btn" type="button" id="new-signature-btn" style="width:100%;margin-top:8px;">+ New Signature</button>
+    </aside>
+
+    <main class="sig-main">
+      <div class="card" id="empty-state" hidden>
+        <p class="muted">You don't have any signatures yet. Click "+ New Signature" to create one.</p>
+      </div>
+
+      <div class="sig-tabs" id="tabs-bar">
+        <button class="sig-tab active" type="button" data-tab="details">Details</button>
+        <button class="sig-tab" type="button" data-tab="signature">Signature</button>
+      </div>
+
+      <div id="tab-details">
+        <div class="card">
+          <h2>Your details</h2>
+          <p class="muted" id="details-hint" style="margin-top:-14px;"></p>
+          <p class="frozen-note" id="frozen-note" hidden>
+            Your details are locked. Click "Edit Details" below to change them.
+          </p>
+          <form id="details-form">
+            <fieldset id="fieldset" style="border:none;padding:0;margin:0;">
+              <div class="field">
+                <label for="fullName">Name</label>
+                <input type="text" id="fullName" required />
+              </div>
+              <div class="field">
+                <label for="program" id="label-program">Program (with course)</label>
+                <input type="text" id="program" />
+              </div>
+              <div class="field">
+                <label for="department" id="label-department">Department</label>
+                <input type="text" id="department" />
+              </div>
+              <div class="field">
+                <label for="school" id="label-school">School</label>
+                <input type="text" id="school" />
+              </div>
+              <div class="field">
+                <label for="campus" id="label-campus">Campus</label>
+                <input type="text" id="campus" />
+              </div>
+              <div class="field">
+                <label for="mobile">Mobile number</label>
+                <input type="text" id="mobile" />
+              </div>
+              <div class="field">
+                <label for="website">Website</label>
+                <input type="url" id="website" placeholder="https://" />
+              </div>
+
+              <h2 style="margin-top:28px;">Social links (optional)</h2>
+              <p class="muted" style="margin-top:-14px;">
+                Only the icons for the links you fill in will show up on your signature.
+              </p>
+              <div class="row">
+                <div class="field">
+                  <label for="linkedin">LinkedIn URL</label>
+                  <input type="url" id="linkedin" />
+                </div>
+                <div class="field">
+                  <label for="instagram">Instagram URL</label>
+                  <input type="url" id="instagram" />
+                </div>
+              </div>
+              <div class="row">
+                <div class="field">
+                  <label for="youtube">YouTube URL</label>
+                  <input type="url" id="youtube" />
+                </div>
+                <div class="field">
+                  <label for="facebook">Facebook URL</label>
+                  <input type="url" id="facebook" />
+                </div>
+                <div class="field">
+                  <label for="twitter">X (Twitter) URL</label>
+                  <input type="url" id="twitter" />
+                </div>
+              </div>
+            </fieldset>
+
+            <button class="btn" type="submit" id="save-btn">Save Details</button>
+            <button class="btn secondary" type="button" id="edit-btn" hidden>Edit Details</button>
+            <button class="btn secondary" type="button" id="delete-btn">Delete This Signature</button>
+            <div class="success" id="details-success"></div>
+            <div class="error" id="details-error"></div>
+          </form>
+        </div>
+      </div>
+
+      <div id="tab-signature" hidden>
+        <div class="card">
+          <h2>Your photo</h2>
+          <div class="upload-row" id="photo-locked-view" hidden>
+            <img id="photo-preview" class="photo-preview" alt="" />
+            <button class="btn secondary" type="button" id="change-photo-btn">Change Photo</button>
+          </div>
+          <div class="field" id="photo-form" style="max-width:360px;">
+            <label for="photo">Upload your email signature photo</label>
+            <input type="file" id="photo" accept="image/*" />
+            <p class="muted" style="margin-top:6px;">You'll be able to drag and zoom to frame your face before it's saved.</p>
+          </div>
+          <div class="success" id="photo-success"></div>
+          <div class="error" id="photo-error"></div>
+        </div>
+
+        <div class="card" id="banner-card" hidden>
+          <h2>Banner</h2>
+          <p class="muted" style="margin-top:-14px;">
+            This signature isn't the default GITAM one, so it gets its own banner instead of the GITAM banner.
+          </p>
+          <div class="upload-row">
+            <img id="banner-preview" style="max-width:200px;border:1px solid var(--border);border-radius:6px;" alt="" hidden />
+            <input type="file" id="banner-input" accept="image/*" />
+          </div>
+          <div class="field" style="max-width:400px;margin-top:14px;">
+            <label for="bannerLink">Banner link (where clicking it goes)</label>
+            <input type="url" id="bannerLink" placeholder="https://" />
+            <button class="btn secondary" type="button" id="save-banner-link-btn" style="margin-top:10px;">Save Banner Link</button>
+          </div>
+          <div class="success" id="banner-success"></div>
+          <div class="error" id="banner-error"></div>
+        </div>
+
+        <div class="card">
+          <h2>Choose email signature templates</h2>
+          <div class="field" style="max-width:280px;">
+            <label for="font-select">Font</label>
+            <select id="font-select"></select>
+          </div>
+          <div class="templates-grid">
+            <div class="template-card">
+              <div class="template-preview-wrap" id="preview-with-photo"></div>
+              <div class="template-copy">
+                <button class="btn secondary" id="copy-with-photo">Copy Signature</button>
+              </div>
+            </div>
+            <div class="template-card">
+              <div class="template-preview-wrap" id="preview-no-photo"></div>
+              <div class="template-copy">
+                <button class="btn secondary" id="copy-no-photo">Copy Signature</button>
+              </div>
+            </div>
+          </div>
+          <div class="success" id="copy-status" style="margin-top:16px;"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="js/signatures.js"></script>
+</body>
+</html>

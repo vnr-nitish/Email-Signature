@@ -1,88 +1,163 @@
 # Email Signature Generator
 
-A multi-user tool that lets students generate a Gmail-ready HTML email
+A tool that lets anyone with access generate a Gmail-ready HTML email
 signature with a profile photo, and copy it straight into Gmail's signature
-settings. Sign-in is Google-only, restricted to GITAM's own domains.
+settings. Every account — a GITAM student/faculty signed in with Google, or
+the one admin account — can hold **multiple independent signatures**,
+switchable from a sidebar, for people who also need a signature for a
+different affiliation (a side company, another organization, etc).
 
 ## The sign-in flow
 
-1. Student clicks **Continue with Google** on the login page.
-2. The app checks their email domain (see below) — anything else is signed
+1. A GITAM student/faculty clicks **Continue with Google** on the login
+   page; the admin instead logs in separately at `admin-login.html` with
+   email/password (see "The admin account" below for why).
+2. The app checks the signed-in email is either an allowed GITAM domain or
+   the admin account (see "Domain restriction") — anything else is signed
    back out immediately.
-3. First time in, their profile is empty, so they land on **Edit Profile**
-   to fill in name/program/department/etc. and click **Save Details** (this
-   locks the form — "Edit Details" unlocks it again later).
-4. From there they land on the **Dashboard**, where they upload/crop a
-   photo, pick a font, and copy the finished signature.
-5. Anyone who already has a saved profile skips straight to the Dashboard
-   on future logins.
+3. A first-time GITAM login gets one signature auto-created, named "GITAM
+   Signature". The admin gets nothing auto-created — it starts empty.
+4. Everyone lands on **signatures.html**: a sidebar listing their
+   signatures, a **+ New Signature** button to add more, and two tabs for
+   whichever signature is selected — **Details** (the form fields) and
+   **Signature** (photo, font, banner for non-default signatures, and the
+   two copyable templates).
 
 This routing lives in one place — `routeAfterLogin()` in
 [js/auth-guard.js](js/auth-guard.js) — called from `index.html` right after
-Google redirects back, and checks the profile's `detailsSubmitted` flag to
-decide Dashboard vs. Edit Profile.
+Google redirects back.
+
+## One account, many signatures
+
+Every signature is a full, independent record: its own name/role/
+organization fields, its own photo, its own font, and — for anything other
+than the default GITAM one — its own banner image and click-through link.
+They all belong to whichever account created them (`owner_id` in the
+`signatures` table), and row-level security means an account can only ever
+see or touch its own rows.
+
+The **default GITAM signature** and **any signature you add yourself** use
+the same four underlying fields, just labeled differently depending on
+context (`LABELS` in [js/signatures.js](js/signatures.js)):
+
+| Column      | Default ("GITAM Signature") | Any other signature        |
+| ----------- | ---------------------------- | --------------------------- |
+| `program`   | Program (with course)        | Position / Designation / Role |
+| `department`| Department                   | Wing / Branch                |
+| `school`    | School                        | Institute / Organization     |
+| `campus`    | Campus                        | Location                     |
+
+The default signature always uses the shared GITAM banner
+(`assets/banner.gif`) and `COLLEGE_WEBSITE_URL`; any other signature shows
+an extra "Banner" section on its Signature tab to upload its own and set
+where clicking it goes.
+
+This replaced an earlier separate "admin panel" design (one bespoke UI just
+for the admin to build one-off signatures for other people). It's simpler
+now: the admin is just an account that happens to create lots of custom
+signatures instead of one, using the exact same "+ New Signature" flow any
+student can use for a second job/affiliation.
 
 ## Domain restriction
 
 Only `@gitam.in`, `@student.gitam.edu`, and `@alumni.gitam.edu` Google
-accounts are allowed in. Google itself has no setting for this, so it's
-enforced in two places:
+accounts get a default signature auto-created and can create their own.
+Google itself has no setting for this, so it's enforced in two places:
 
 - **The app** ([js/app-config.js](js/app-config.js) → `ALLOWED_EMAIL_DOMAINS`,
-  checked by every protected page via `auth-guard.js`) — signs a disallowed
-  account back out immediately and bounces them to the login page with an
-  explanation. This is just a fast, friendly UX layer.
+  checked in `js/auth-guard.js`) — signs a disallowed account back out
+  immediately and bounces them to the login page with an explanation. This
+  is just a fast, friendly UX layer.
 - **The database** ([supabase-schema.sql](supabase-schema.sql) →
-  `is_allowed_domain()`) — a Postgres function used in the row-level-security
-  policies for both the `profiles` table and the `avatars` storage bucket.
-  This is the layer that actually matters: even someone who bypassed the
-  app's JavaScript entirely could never get a profile row created or a
-  photo uploaded from a disallowed account.
+  `is_allowed_domain()`) — used in the `signatures` table's row-level-security
+  policy alongside `is_admin()`: a row can only be *created* by an
+  allowed-domain account or the admin account. This is the layer that
+  actually matters: even someone who bypassed the app's JavaScript entirely
+  could never get a signature row created from a disallowed account.
 
-To change the allowed domains later, update both
-`ALLOWED_EMAIL_DOMAINS` in `js/app-config.js` **and** the domain list inside
-`is_allowed_domain()` in Supabase (SQL Editor → re-run the `create or
-replace function` block from the schema file with the new list).
+To change the allowed domains later, update both `ALLOWED_EMAIL_DOMAINS` in
+`js/app-config.js` **and** the domain list inside `is_allowed_domain()` in
+Supabase (SQL Editor → re-run that `create or replace function` block with
+the new list).
+
+## The admin account
+
+`admin-login.html` is a separate, Google-independent login (plain
+email/password via Supabase Auth) for exactly one account — the domain
+restriction above doesn't apply to it. Once logged in, it lands on the
+exact same `signatures.html` as everyone else; the only difference is it
+never gets a default signature auto-created, so it starts empty and uses
+"+ New Signature" for everything.
+
+**Why the password isn't in this codebase:** this repo is public. A
+password committed here would be visible to anyone who opens the file on
+GitHub. Since email/password auth is already a first-class Supabase
+feature, there's no need to invent a custom check — you create the real
+account with that email + your chosen password directly in the Supabase
+dashboard (Authentication → Users → Add user), and `signInWithPassword`
+verifies it server-side. To change the password later, do it there — never
+in code. To change the *admin email*, update it in two places:
+`ADMIN_EMAIL` in `js/app-config.js`, and inside `is_admin()` in
+`supabase-schema.sql` (re-run that `create or replace function` block with
+the new email).
 
 ## How the "photo updates in old emails too" trick works
 
 The signature never embeds the photo as a picture — it embeds an `<img
-src="https://.../avatars/<uid>/photo.png">` **link**. Gmail (and every other
-email client) re-fetches whatever is at that link every time an email is
-opened, old or new. So when a student uploads a new photo, it overwrites the
-file at that same URL, and every signature that ever referenced it —
-including emails sent months ago — shows the new photo the next time someone
-opens them. Nothing about the old email actually changes; it was only ever
-pointing at a live link.
+src="https://.../avatars/<signature-id>/photo.png">` **link**. Gmail (and
+every other email client) re-fetches whatever is at that link every time an
+email is opened, old or new. So uploading a new photo overwrites the file at
+that same URL, and every signature that ever referenced it — including
+emails sent months ago — shows the new photo the next time someone opens
+them. Nothing about the old email actually changes; it was only ever
+pointing at a live link. The same applies to a custom signature's banner.
 
-A Supabase public bucket's URL for a given path never changes on its own, so
-uploading to the same `<uid>/photo.png` path every time (`upsert: true`, in
-[js/backend-supabase.js](js/backend-supabase.js)) is all that's needed to
-keep the URL permanently fixed — no manual token bookkeeping required.
+Two things make this actually work in practice, both in
+[js/backend-supabase.js](js/backend-supabase.js):
+- Uploading to the exact same `<signature-id>/photo.png` path every time
+  (`upsert: true`) keeps the URL permanently fixed — a Supabase public
+  bucket's URL for a given path never changes on its own.
+- `cacheControl: "0"` on every upload, so nothing (your browser, a CDN in
+  front of Storage, Gmail's image proxy) treats that URL as safely
+  cacheable without checking first. On top of that,
+  [js/signatures.js](js/signatures.js) appends a fresh timestamp to the URL
+  every time it's *displayed or copied* (never persisted) — belt-and-braces
+  against any caching layer that doesn't fully honor the header.
+
+In practice, expect a couple of minutes' delay before an already-sent email
+picks up a new photo — that's Gmail's own image proxy cache, outside this
+app's control.
 
 ## Stack
 
 Plain HTML/CSS/JS (no build step, no framework) with a swappable backend
 adapter ([js/backend.js](js/backend.js)):
 
-- **`supabase`** — the real backend. Google-only Authentication, Postgres
-  (one row per student in a `profiles` table), Storage (each photo at
-  `avatars/<uid>/photo.png`).
-- **`local`** (default until you configure Supabase) — runs entirely in your
-  browser via `localStorage`, zero setup, no API keys, seeded with a demo
-  login. Good for trying out the UI/flow, but photos are stored as data URLs
-  baked directly into the copied signature — that means a real photo will
+- **`supabase`** — the real backend. Google Authentication (domain-gated)
+  plus a separate email/password login for the admin, one Postgres
+  `signatures` table (RLS-scoped to `owner_id`), Storage (`avatars` and
+  `banners` buckets, each file at `<signature-id>/...`).
+- **`local`** (fallback if Supabase isn't configured) — runs entirely in
+  your browser via `localStorage`, zero setup, no API keys, seeded with a
+  demo login. Good for trying out the UI/flow, but photos are stored as
+  data URLs baked directly into the copied signature — a real photo will
   likely trip Gmail's "signature too long" warning, and the "old emails
   auto-update" behavior can't be demonstrated for real, since both
-  specifically require a real public, stable URL. Switch to `supabase` to
-  get both for real.
+  specifically require a real public, stable URL.
 
 Pages never call Supabase directly, only `backend.js` — the camelCase
-profile shape (`fullName`, `photoURL`, etc.) is the same regardless of which
-adapter is active; `backend-supabase.js` maps that to/from Postgres's
-snake_case columns internally.
+signature shape (`fullName`, `photoURL`, `bannerURL`, etc.) is the same
+regardless of which adapter is active; `backend-supabase.js` maps that
+to/from Postgres's snake_case columns internally.
 
 ## One-time setup (Supabase)
+
+**Already have the old `profiles`/`managed_signatures` tables from an
+earlier version of this app?** Run
+[supabase-migration-signatures.sql](supabase-migration-signatures.sql)
+instead of `supabase-schema.sql` — it creates the new `signatures` table,
+copies your existing data into it, and only then drops the old tables.
+**A fresh project** should run `supabase-schema.sql` directly.
 
 1. Go to [supabase.com](https://supabase.com) and create a new project
    (free tier).
@@ -93,65 +168,25 @@ snake_case columns internally.
    - **Enable Data API** — ON (required; this is what `supabase-js` talks
      to).
    - **Automatically expose new tables** — OFF (Supabase's own
-     recommendation; `supabase-schema.sql` already includes the explicit
-     `grant` statements this would otherwise have done automatically, so
-     nothing breaks by turning it off).
-   - **Enable automatic RLS** — ON (free safety net: any table either of us
-     adds later automatically gets row-level security turned on, so it can
-     never accidentally ship exposed).
+     recommendation; the schema/migration files already include the
+     explicit `grant` statements this would otherwise have done
+     automatically, so nothing breaks by turning it off).
+   - **Enable automatic RLS** — ON (free safety net for any table added
+     later).
 4. **Authentication → Providers → Google** — enable it. Supabase's UI walks
    you through creating the Google OAuth client ID/secret it needs; you'll
    need a Google Cloud project for that (a free, separate thing from
-   Supabase/Firebase).
-5. **SQL Editor → New query** — paste and run
-   [supabase-schema.sql](supabase-schema.sql). This creates the `profiles`
-   and `managed_signatures` tables, the domain-restriction and admin-check
-   functions + row-level-security policies, the public `avatars` and
-   `banners` storage buckets, and their upload policies, all in one go.
+   Supabase).
+5. **SQL Editor → New query** — paste and run whichever of
+   `supabase-schema.sql` / `supabase-migration-signatures.sql` applies (see
+   above).
 6. **Storage** — double check the `avatars` and `banners` buckets exist and
-   are marked **Public** (the script creates both, but worth confirming).
+   are marked **Public**.
 7. **Authentication → Users → Add user** — create the admin account: email
-   `nitishraj.vinnakota2212@gmail.com`, and set the password directly here
-   (never in code — see "Admin panel" below for why). Check "Auto Confirm
-   User" so it's usable immediately.
+   `nitishraj.vinnakota2212@gmail.com`, set the password directly here
+   (never in code — see "The admin account" above), check "Auto Confirm
+   User".
 8. Set `BACKEND = "supabase"` in [js/app-config.js](js/app-config.js).
-
-Send me the Project URL + anon key once you've done steps 1–2 and I'll wire
-them in and push.
-
-## Admin panel
-
-`admin-login.html` is a separate, Google-independent login (plain
-email/password via Supabase Auth) for exactly one account — the domain
-restriction above doesn't apply to it at all. Only the account whose email
-matches `ADMIN_EMAIL` in [js/app-config.js](js/app-config.js) is let into
-`admin.html` (checked by `requireAdmin()` in `js/auth-guard.js`); the
-database independently enforces the same thing via `is_admin()` in the
-schema, for the `managed_signatures` table and the `banners` bucket.
-
-**Why the password isn't in this codebase:** this repo is public. A
-password committed here would be visible to literally anyone who opens the
-file on GitHub. Since email/password auth is already a first-class Supabase
-feature, there's no need to invent a custom check anyway — you create the
-real account with that email + your chosen password directly in the
-Supabase dashboard (step 6 above), and `signInWithPassword` verifies it
-server-side. If you ever want to change the password, do it there
-(Authentication → Users → the account → reset password) — never in code. If
-you want to change the *admin email*, update it in two places:
-`ADMIN_EMAIL` in `js/app-config.js`, and inside `is_admin()` in
-`supabase-schema.sql` (re-run that `create or replace function` block in
-the SQL Editor with the new email).
-
-From `admin.html`, the admin can create any number of independent
-signatures for any organization or person — each one has its own full set
-of fields (Name/Designation/Institute-Wing/Organization/Location/Phone/
-Website + socials), its own photo (with the same crop tool students use),
-and its own banner image + link, uploaded separately per signature. These
-aren't tied to any login at all — the person the signature is for never
-signs into anything; only the admin manages it. They're stored in a
-separate `managed_signatures` table, entirely apart from student profiles.
-The five social icons stay the shared defaults from `assets/icons/` — only
-the banner is per-signature.
 
 ## Running it locally
 
@@ -165,26 +200,13 @@ npx serve .
 python -m http.server 8080
 ```
 
-Then open `http://localhost:8080` (or whatever port it prints). Note:
-Google's OAuth redirect needs a real registered URL, so the Google sign-in
-button won't complete on `localhost` once `BACKEND = "supabase"` — that part
-needs to be tested on the deployed GitHub Pages URL.
-
-## Profile fields
-
-Set once on the Edit Profile page, in this order: **Name → Program →
-Department → School → Campus → Mobile → Website**, plus up to five optional
-social links (LinkedIn/Instagram/YouTube/Facebook/X). After clicking "Save
-Details" the form locks (read-only) and an "Edit Details" button appears to
-unlock it again — same pattern for the photo on the Dashboard page ("Change
-Photo"). This state lives in the `detailsSubmitted` column.
-
-Only social icons for links actually filled in are shown on the signature —
-leave a field blank and that icon just doesn't render.
+Google's OAuth redirect needs a real registered URL, so the Google
+sign-in button won't complete on `localhost` once `BACKEND = "supabase"` —
+that part needs to be tested on the deployed URL.
 
 ## Photo cropping
 
-Selecting a photo on the Dashboard opens a crop tool
+Selecting a photo on the Signature tab opens a crop tool
 ([js/photo-cropper.js](js/photo-cropper.js)) — drag to reposition, use the
 slider to zoom, so your face lands inside the circle before it's saved. It
 outputs a 320×320 circular PNG, which is what actually gets uploaded (not
@@ -197,31 +219,28 @@ the original file).
   purpose** — Gmail strips `<style>` blocks and external CSS when you paste,
   so only inline `style=""` attributes survive. Layout (widths, padding,
   vertical-align) is matched directly to GITAM's own production markup.
-- Social icons and the bottom banner are your own images under
-  [assets/](assets/) (`assets/icons/*.png`, `assets/banner.gif`), referenced
-  by **relative path** in the template. At copy-time,
-  [js/dashboard.js](js/dashboard.js) rewrites those to full absolute URLs
-  based on wherever the app is currently being served from — so this works
-  unchanged on `localhost` during development and on your real domain once
-  deployed, with no config needed.
-- The banner is rendered as a single flat image (no text overlaid on it via
-  CSS) because Gmail's paste sanitizer unreliably strips background-image
-  styling. If you get a finished banner graphic with your college's
-  name/logo already baked in as one image, just replace
-  `assets/banner.gif` with it — no code changes needed.
-- The font is chosen per-student from a fixed list
-  (`FONT_OPTIONS` in `js/signature-template.js`) — only fonts installed on
-  virtually every device render reliably in an actual email; the others
-  fall back to something close for recipients who don't have them.
+- Social icons are your own images under [assets/icons/](assets/icons/),
+  referenced by **relative path** in the template — always the same five,
+  regardless of signature type. The default banner
+  (`assets/banner.gif`) is likewise a relative path; a custom signature's
+  own banner is instead an absolute Supabase Storage URL. At copy-time,
+  [js/signatures.js](js/signatures.js) rewrites relative paths to full
+  absolute URLs based on wherever the app is currently being served from —
+  so this works unchanged on `localhost` during development and on your
+  real domain once deployed.
+- The font is chosen per-signature from a fixed list (`FONT_OPTIONS` in
+  `js/signature-template.js`) — only fonts installed on virtually every
+  device render reliably in an actual email; the others fall back to
+  something close for recipients who don't have them.
 
 ## Known limitations
 
-- No bulk-invite flow for students — any allowed-domain Google account can
-  sign itself up. The admin panel covers one-off/manual signature creation,
-  not bulk provisioning.
+- No bulk-invite flow — any allowed-domain Google account can sign itself
+  up; the admin covers one-off/manual signature creation, not bulk
+  provisioning.
 - No client-side image resizing beyond the crop tool's fixed 320×320 output.
-- Deleting a managed signature doesn't clean up its uploaded photo/banner
-  files in Storage — they just become orphaned, harmless but unused.
+- Deleting a signature doesn't clean up its uploaded photo/banner files in
+  Storage — they just become orphaned, harmless but unused.
 - Works best in Gmail; other clients (especially Outlook desktop) render
   HTML signatures less faithfully — the template intentionally avoids
   flexbox/CSS-grid and SVG for that reason.

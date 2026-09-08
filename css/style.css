@@ -344,3 +344,80 @@ body {
 .google-btn:hover {
   background: #f6f9f8;
 }
+
+/* ---- signatures.html: sidebar + tabs layout ---- */
+.sig-layout {
+  display: flex;
+  align-items: flex-start;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  gap: 24px;
+}
+
+.sig-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  position: sticky;
+  top: 32px;
+}
+
+.sig-sidebar-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.sig-sidebar-item:hover {
+  background: var(--bg);
+}
+
+.sig-sidebar-item.active {
+  background: var(--teal);
+  color: #fff;
+  font-weight: 600;
+}
+
+.sig-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.sig-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sig-tab {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.sig-tab.active {
+  color: var(--teal);
+  border-bottom-color: var(--teal);
+}

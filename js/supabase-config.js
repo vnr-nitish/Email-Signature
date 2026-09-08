@@ -10,12 +10,13 @@
 // 4. Authentication > Providers -> enable Google if you want the "Continue
 //    with Google" button to work for real (needs a Google Cloud OAuth
 //    client ID/secret, which Supabase's UI walks you through).
-// 5. SQL Editor -> paste and run supabase-schema.sql (creates the profiles
-//    table + its row-level-security policies + the avatars storage bucket
-//    policies).
-// 6. Storage -> confirm the "avatars" bucket exists and is marked Public
-//    (the schema script creates it, but double check) — public read is
-//    required since Gmail fetches the photo with no login session at all.
+// 5. SQL Editor -> paste and run supabase-schema.sql (creates the
+//    signatures table + its row-level-security policies + the avatars/
+//    banners storage bucket policies). If migrating from an older version
+//    of this app, run supabase-migration-signatures.sql instead.
+// 6. Storage -> confirm the "avatars" and "banners" buckets exist and are
+//    marked Public — public read is required since Gmail fetches images
+//    with no login session at all.
 // 7. Set BACKEND = "supabase" in js/app-config.js.
 // ============================================================================
 export const supabaseConfig = {

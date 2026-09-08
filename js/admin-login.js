@@ -14,7 +14,7 @@ form.addEventListener("submit", async (e) => {
   try {
     const user = await backend.adminLogin({ email, password });
     if (user.email !== ADMIN_EMAIL) throw new Error("This account is not authorized as admin.");
-    window.location.href = "admin.html";
+    window.location.href = "signatures.html";
   } catch (err) {
     errorEl.textContent = err.message;
   }
