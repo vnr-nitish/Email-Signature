@@ -140,7 +140,7 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     <tr>
       <td colspan="2" style="padding-top:0;">
         <a href="${escapeHtml(effectiveBannerLink)}" target="_blank" style="display:block;line-height:0;">
-          <img src="${escapeHtml(effectiveBannerSrc)}" width="${SIGNATURE_WIDTH}" style="display:block;width:100%;max-width:${SIGNATURE_WIDTH}px;border:0;" alt="" />
+          <img src="${escapeHtml(effectiveBannerSrc)}" width="${SIGNATURE_WIDTH}" draggable="false" style="display:block;width:100%;max-width:${SIGNATURE_WIDTH}px;border:0;-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none;" alt="" />
         </a>
       </td>
     </tr>`
@@ -151,7 +151,7 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     <td style="vertical-align:middle;text-align:center;width:140px;padding:0px 10px 0px 5px;">
       ${
         photoURL
-          ? `<img src="${escapeHtml(photoURL)}" width="${PHOTO_SIZE}" height="${PHOTO_SIZE}" style="width:${PHOTO_SIZE}px;height:${PHOTO_SIZE}px;border-radius:50%;border:3px solid #fff;object-fit:cover;display:block;" alt="${escapeHtml(fullName)}" />`
+          ? `<img src="${escapeHtml(photoURL)}" width="${PHOTO_SIZE}" height="${PHOTO_SIZE}" draggable="false" style="width:${PHOTO_SIZE}px;height:${PHOTO_SIZE}px;border-radius:50%;border:3px solid #fff;object-fit:cover;display:block;-webkit-user-drag:none;user-select:none;-webkit-touch-callout:none;" alt="${escapeHtml(fullName)}" />`
           : `<div style="width:${PHOTO_SIZE}px;height:${PHOTO_SIZE}px;border-radius:50%;background:#eef3f2;"></div>`
       }
     </td>`

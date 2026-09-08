@@ -256,6 +256,16 @@ body {
   background: #eef3f2;
 }
 
+/* Best-effort discouragement of casual drag/right-click-save on this
+   site's own preview thumbnails — see the note in signature-template.js
+   about why this can only ever be a deterrent, not a real restriction. */
+#photo-preview,
+#banner-preview {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 /* ---- photo cropper modal ---- */
 .cropper-overlay {
   position: fixed;

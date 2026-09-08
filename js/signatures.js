@@ -54,9 +54,49 @@ const FIELDS = [
 // to the signature's fixed width.
 const BANNER_ASPECT_RATIO = 912 / 212;
 
+// A plain generic silhouette, not a real photo — avoids needing an actual
+// person's likeness (rights/consent issues) just to illustrate where a
+// photo goes. Built inline so the example view needs no extra asset file.
+const PLACEHOLDER_AVATAR =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 130">
+      <circle cx="65" cy="65" r="65" fill="#cbd5d1"/>
+      <circle cx="65" cy="52" r="24" fill="#eef3f2"/>
+      <path d="M65 84c-26 0-46 15-46 34v12h92v-12c0-19-20-34-46-34z" fill="#eef3f2"/>
+    </svg>`
+  );
+
+// Sample data for the "See an example" view — not a real signature, never
+// saved anywhere, purely illustrative.
+const SAMPLE_SIGNATURE = {
+  isDefault: false,
+  fullName: "Jordan Lee",
+  program: "Marketing Manager",
+  department: "Digital Marketing Wing",
+  school: "Bright Ideas Studio",
+  campus: "Bengaluru, India",
+  mobile: "+91 90000 00000",
+  website: "https://example.com",
+  websiteLabel: "",
+  photoURL: PLACEHOLDER_AVATAR,
+  linkedin: "https://linkedin.com/in/example",
+  instagram: "",
+  youtube: "",
+  facebook: "https://facebook.com/example",
+  twitter: "",
+  fontFamily: "Georgia",
+  bannerURL: "",
+  bannerLink: "",
+  iconColor: DEFAULT_ICON_COLOR,
+};
+
 const sidebarListEl = document.getElementById("sidebar-list");
 const newSignatureBtn = document.getElementById("new-signature-btn");
-const emptyState = document.getElementById("empty-state");
+const exampleBtn = document.getElementById("example-btn");
+const exampleView = document.getElementById("example-view");
+const examplePreviewWithPhoto = document.getElementById("example-preview-with-photo");
+const examplePreviewNoPhoto = document.getElementById("example-preview-no-photo");
 const tabsBar = document.getElementById("tabs-bar");
 const tabDetails = document.getElementById("tab-details");
 const tabSignature = document.getElementById("tab-signature");
@@ -219,11 +259,20 @@ async function renderTemplates() {
   previewNoPhoto.innerHTML = buildSignatureHTML(displaySignature, { withPhoto: false });
 }
 
-function showEmptyState(isEmpty) {
-  emptyState.hidden = !isEmpty;
-  tabsBar.hidden = isEmpty;
-  tabDetails.hidden = isEmpty || activeTab !== "details";
-  tabSignature.hidden = isEmpty || activeTab !== "signature";
+// "example" - the permanent, always-available sample (shown automatically
+// when there are zero real signatures, or any time via the sidebar button).
+// "editor" - the real Details/Signature tabs for the selected signature.
+function setMainView(view) {
+  exampleView.hidden = view !== "example";
+  const showEditor = view === "editor";
+  tabsBar.hidden = !showEditor;
+  tabDetails.hidden = !showEditor || activeTab !== "details";
+  tabSignature.hidden = !showEditor || activeTab !== "signature";
+}
+
+function renderExample() {
+  examplePreviewWithPhoto.innerHTML = buildSignatureHTML(SAMPLE_SIGNATURE, { withPhoto: true });
+  examplePreviewNoPhoto.innerHTML = buildSignatureHTML(SAMPLE_SIGNATURE, { withPhoto: false });
 }
 
 async function refreshSignatures() {
@@ -238,7 +287,7 @@ async function selectSignature(id) {
   bannerCacheBust = Date.now();
 
   renderSidebar();
-  showEmptyState(false);
+  setMainView("editor");
   fillDetailsForm(currentSignature);
   fillPhotoBanner(currentSignature);
   renderTemplates();
@@ -248,12 +297,15 @@ requireSignatureAccess(async (user) => {
   currentUid = user.uid;
   signatures = await backend.listSignatures(currentUid);
   renderSidebar();
+  renderExample();
 
   if (signatures.length > 0) {
     await selectSignature(signatures[0].id);
   } else {
-    showEmptyState(true);
+    setMainView("example");
   }
+
+  exampleBtn.addEventListener("click", () => setMainView("example"));
 
   newSignatureBtn.addEventListener("click", async () => {
     const name = prompt("Name this signature (e.g. your other company or organization):");
@@ -301,7 +353,7 @@ requireSignatureAccess(async (user) => {
     if (signatures.length > 0) {
       await selectSignature(signatures[0].id);
     } else {
-      showEmptyState(true);
+      setMainView("example");
     }
   });
 

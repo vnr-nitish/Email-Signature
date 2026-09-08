@@ -14,28 +14,39 @@
 
   <div class="sig-layout">
     <aside class="sig-sidebar">
-      <button class="btn" type="button" id="new-signature-btn" style="width:100%;margin-bottom:16px;">+ New Signature</button>
+      <button class="btn" type="button" id="new-signature-btn" style="width:100%;margin-bottom:8px;">+ New Signature</button>
+      <button class="sig-sidebar-item" type="button" id="example-btn" style="border:1px dashed var(--border);margin-bottom:12px;">See an example</button>
       <div id="sidebar-list"></div>
     </aside>
 
     <main class="sig-main">
-      <div class="card" id="empty-state" hidden>
+      <div class="card" id="example-view" hidden>
         <h2>Get started</h2>
         <p class="muted">
-          You don't have any signatures yet. Click "+ New Signature" above and give it a name
-          (e.g. your company or organization) - you'll then be asked for details like your name,
-          role, and contact info, plus a photo, and (optionally) your own banner image and icon
-          colors. As you fill things in, a live preview builds on the "Signature" tab showing
-          exactly how it'll look, ready to copy straight into Gmail's signature settings.
+          This is a sample signature with placeholder details and a placeholder photo - not
+          real data - just to show you what a finished one looks like. Click "+ New Signature"
+          and give it a name (e.g. your company or organization) to build your own: you'll be
+          asked for details like your name, role, and contact info, plus a photo, and
+          (optionally) your own banner image and icon colors. As you fill things in, a live
+          preview builds on the "Signature" tab showing exactly how it'll look, ready to copy
+          straight into Gmail's signature settings.
         </p>
+        <div class="templates-grid" style="margin-top:20px;">
+          <div class="template-card">
+            <div class="template-preview-wrap" id="example-preview-with-photo"></div>
+          </div>
+          <div class="template-card">
+            <div class="template-preview-wrap" id="example-preview-no-photo"></div>
+          </div>
+        </div>
       </div>
 
-      <div class="sig-tabs" id="tabs-bar">
+      <div class="sig-tabs" id="tabs-bar" hidden>
         <button class="sig-tab active" type="button" data-tab="details">Details</button>
         <button class="sig-tab" type="button" data-tab="signature">Signature</button>
       </div>
 
-      <div id="tab-details">
+      <div id="tab-details" hidden>
         <div class="card">
           <h2>Your details</h2>
           <p class="muted" id="details-hint" style="margin-top:-14px;"></p>
@@ -125,7 +136,7 @@
         <div class="card">
           <h2>Your photo</h2>
           <div class="upload-row" id="photo-locked-view" hidden>
-            <img id="photo-preview" class="photo-preview" alt="" />
+            <img id="photo-preview" class="photo-preview" draggable="false" alt="" />
             <button class="btn secondary" type="button" id="change-photo-btn">Change Photo</button>
           </div>
           <div class="field" id="photo-form" style="max-width:360px;">
@@ -143,7 +154,7 @@
             Upload your own banner image for this signature, and set where clicking it should go.
           </p>
           <div class="upload-row">
-            <img id="banner-preview" style="max-width:200px;border:1px solid var(--border);border-radius:6px;" alt="" hidden />
+            <img id="banner-preview" draggable="false" style="max-width:200px;border:1px solid var(--border);border-radius:6px;" alt="" hidden />
             <div>
               <input type="file" id="banner-input" accept="image/*" />
               <p class="muted" style="margin-top:6px;">Recommended size: 940 × 218px. PNG/JPG images can be cropped/zoomed to fit after choosing one - GIFs are uploaded exactly as given, animation included, so try to size it close to 940 × 218px yourself first.</p>
