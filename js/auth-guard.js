@@ -1,13 +1,10 @@
 import { backend } from "./backend.js";
 import { isAllowedEmail, ADMIN_EMAIL } from "./app-config.js";
 
-function isAuthorized(user) {
-  return Boolean(user) && (user.email === ADMIN_EMAIL || isAllowedEmail(user.email));
-}
-
-// Guards signatures.html — the one shared page both a GITAM student
-// (Google sign-in) and the admin account (email/password) land on. Anyone
-// else is signed out and bounced to the login page.
+// Guards signatures.html. Open to ANY authenticated account now (any
+// Google sign-in, or the admin's email/password login) — the GITAM domain
+// check no longer decides who may use the app at all, only whether a
+// default "GITAM Signature" gets auto-created (see routeAfterLogin).
 //
 // Only ever acts on the FIRST auth event, on purpose: Supabase silently
 // re-fires this same callback whenever the tab regains focus (it's
@@ -18,17 +15,12 @@ function isAuthorized(user) {
 // wireLogout() redirects explicitly on its own.
 export function requireSignatureAccess(onUser) {
   let handled = false;
-  backend.onAuthChange(async (user) => {
+  backend.onAuthChange((user) => {
     if (handled) return;
     handled = true;
 
     if (!user) {
       window.location.href = "login.html";
-      return;
-    }
-    if (!isAuthorized(user)) {
-      await backend.logOut();
-      window.location.href = "login.html?denied=1";
       return;
     }
     onUser(user);
@@ -45,15 +37,12 @@ export function wireLogout(buttonEl) {
 // The single "where does a freshly-authenticated user land" decision, used
 // right after Google sign-in (index.html, and login.html for backends
 // whose loginWithGoogle() resolves in place rather than navigating away).
-// Ensures a default "GITAM Signature" exists before proceeding — see
-// ensureDefaultSignature's own comment for why this is safe to call
-// unconditionally for both a GITAM student and the admin account.
+// Only a verified GITAM account (or the admin) gets a default "GITAM
+// Signature" auto-created; everyone else lands with zero signatures and
+// creates their own via "+ New Signature".
 export async function routeAfterLogin(user) {
-  if (!isAuthorized(user)) {
-    await backend.logOut();
-    window.location.href = "login.html?denied=1";
-    return;
+  if (isAllowedEmail(user.email) || user.email === ADMIN_EMAIL) {
+    await backend.ensureDefaultSignature(user.uid);
   }
-  await backend.ensureDefaultSignature(user.uid);
   window.location.href = "signatures.html";
 }

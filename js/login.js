@@ -4,11 +4,6 @@ import { routeAfterLogin } from "./auth-guard.js";
 const googleBtn = document.getElementById("google-btn");
 const errorEl = document.getElementById("error");
 
-if (new URLSearchParams(window.location.search).get("denied")) {
-  errorEl.textContent =
-    "That account isn't allowed. Please sign in with a @gitam.in, @student.gitam.edu, or @alumni.gitam.edu account.";
-}
-
 googleBtn.addEventListener("click", async () => {
   errorEl.textContent = "";
   try {

@@ -72,16 +72,20 @@ create table if not exists signatures (
 alter table signatures enable row level security;
 grant select, insert, update, delete on signatures to authenticated;
 
--- A signature can be created only by an allowed-domain student or the
--- admin account — the same two ways anyone can be authenticated at all
--- (Google sign-in is domain-gated in the app, and admin-login.html is the
--- only other way in). Once a signature exists, its owner can freely
--- read/update/delete it — no further domain check needed there.
+-- Any authenticated account may create a signature for itself, but only a
+-- verified GITAM account or the admin may create one flagged is_default —
+-- that's what reserves the auto-created "GITAM Signature" for people
+-- actually affiliated with GITAM while leaving custom signature creation
+-- open to anyone signed in. Once a signature exists, its owner can freely
+-- read/update/delete it.
 create policy "Users manage their own signatures"
   on signatures for all
   to authenticated
   using (auth.uid() = owner_id)
-  with check (auth.uid() = owner_id and (is_allowed_domain() or is_admin()));
+  with check (
+    auth.uid() = owner_id
+    and (is_default = false or is_allowed_domain() or is_admin())
+  );
 
 -- Public buckets for signature photos and custom banners. Public read is
 -- required: Gmail (and every other email client) fetches the <img

@@ -381,7 +381,7 @@ requireSignatureAccess(async (user) => {
 
     const bannerLink = bannerLinkInput.value.trim();
     if (!bannerLink) {
-      bannerError.textContent = "Enter a link first — nothing was saved.";
+      bannerError.textContent = "Enter a link first - nothing was saved.";
       return;
     }
 
@@ -399,13 +399,13 @@ requireSignatureAccess(async (user) => {
     const ok = await copySignatureNode(previewWithPhoto);
     copyStatus.textContent = ok
       ? "Copied! Paste it into Gmail: Settings > See all settings > Signature."
-      : "Could not copy automatically — select the signature above and copy it manually (Ctrl+C).";
+      : "Could not copy automatically - select the signature above and copy it manually (Ctrl+C).";
   });
 
   document.getElementById("copy-no-photo").addEventListener("click", async () => {
     const ok = await copySignatureNode(previewNoPhoto);
     copyStatus.textContent = ok
       ? "Copied! Paste it into Gmail: Settings > See all settings > Signature."
-      : "Could not copy automatically — select the signature above and copy it manually (Ctrl+C).";
+      : "Could not copy automatically - select the signature above and copy it manually (Ctrl+C).";
   });
 });
