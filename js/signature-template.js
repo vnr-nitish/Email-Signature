@@ -14,10 +14,8 @@ export const DEFAULT_ICON_COLOR = TEAL;
 const PHOTO_SIZE = 130;
 // The whole signature is locked to this width — including the banner — so
 // nothing (the banner in particular) forces the table wider than the rest
-// of the block and throws proportions off. Wider than the old 470px
-// specifically to give the info lines (program/department/school/campus)
-// enough room to fit on one line each without wrapping - see nowrap below.
-const SIGNATURE_WIDTH = 600;
+// of the block and throws proportions off.
+const SIGNATURE_WIDTH = 470;
 
 // Relative to the app's own root. Resolved to an absolute URL at copy-time
 // (see dashboard.js) so the copied signature keeps working once it's pasted
@@ -103,15 +101,16 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
 
   const font = fontStack(fontFamily);
 
-  // nowrap keeps each field on its own single line rather than breaking
-  // mid-sentence (e.g. "...Career" / "Guidance" on two lines) - the wider
-  // SIGNATURE_WIDTH above is what makes that fit for realistic institute
-  // names without clipping anything.
+  // 12.5px rather than 13px buys a little width headroom so longer lines
+  // (department/institute names especially) are more likely to fit on one
+  // line across fonts — deliberately NOT forcing white-space:nowrap here,
+  // since that would either clip long text or force the whole signature
+  // wider than the fixed 470px width the banner and layout depend on.
   const infoLines = [program, department, school, campus]
     .filter(Boolean)
     .map(
       (line) =>
-        `<p style="margin:0;font-size:12.5px;font-weight:600;line-height:1.35;color:${INK};font-family:${font};white-space:nowrap;">${escapeHtml(line)}</p>`
+        `<p style="margin:0;font-size:12.5px;font-weight:600;line-height:1.35;color:${INK};font-family:${font};">${escapeHtml(line)}</p>`
     )
     .join("");
 
@@ -125,7 +124,7 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
   const contactHtml = contactLines
     .map(
       (line) =>
-        `<p style="margin:0;font-size:13px;font-family:${font};color:${INK};white-space:nowrap;">${line}</p>`
+        `<p style="margin:0;font-size:13px;font-family:${font};color:${INK};">${line}</p>`
     )
     .join("");
 
@@ -137,7 +136,7 @@ export function buildSignatureHTML(profile, { withPhoto } = { withPhoto: true })
     socialIcon("twitter", twitter, iconUrls),
   ].join("");
 
-  const nameHtml = `<p style="margin:0;font-size:17px;font-weight:700;color:${nameColor};font-family:${font};white-space:nowrap;">${escapeHtml(fullName)}</p>`;
+  const nameHtml = `<p style="margin:0;font-size:17px;font-weight:700;color:${nameColor};font-family:${font};">${escapeHtml(fullName)}</p>`;
 
   // The default GITAM signature always shows the shared banner. Any other
   // signature shows its OWN uploaded banner if it has one, and otherwise
