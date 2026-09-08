@@ -171,6 +171,7 @@ function setPhotoLocked(locked) {
 }
 
 function renderSidebar() {
+  exampleBtn.classList.toggle("active", currentId === null);
   sidebarListEl.innerHTML = "";
   signatures.forEach((sig) => {
     const btn = document.createElement("button");
@@ -312,6 +313,13 @@ requireSignatureAccess(async (user) => {
     currentId = null;
     renderSidebar();
     setMainView("example");
+    // Belt-and-suspenders: force these hidden directly too, in case
+    // something about the editor's prior state (e.g. mid-copy, or a
+    // pending async render) is fighting setMainView above.
+    tabsBar.hidden = true;
+    tabDetails.hidden = true;
+    tabSignature.hidden = true;
+    exampleView.hidden = false;
   });
 
   newSignatureBtn.addEventListener("click", async () => {
