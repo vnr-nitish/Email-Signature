@@ -328,18 +328,23 @@ requireSignatureAccess(async (user) => {
   bannerInput.addEventListener("change", async () => {
     const file = bannerInput.files[0];
     if (!file) return;
-    const cropped = await openCropper(file, {
-      shape: "rect",
-      aspectRatio: BANNER_ASPECT_RATIO,
-      outputWidth: 940,
-    });
+
+    // The crop tool works by drawing onto a canvas, which can only ever
+    // hold one static frame — running a GIF through it would silently
+    // flatten away its animation. So GIFs skip cropping entirely and
+    // upload exactly as given (animation intact); anything else (PNG/JPG,
+    // which was never going to animate anyway) gets cropped/zoomed to fit.
+    const isGif = file.type === "image/gif";
+    const toUpload = isGif
+      ? file
+      : await openCropper(file, { shape: "rect", aspectRatio: BANNER_ASPECT_RATIO, outputWidth: 940 });
     bannerInput.value = "";
-    if (!cropped) return; // user cancelled
+    if (!toUpload) return; // user cancelled the cropper
 
     bannerSuccess.textContent = "";
     bannerError.textContent = "";
     try {
-      const bannerURL = await backend.uploadBanner(currentUid, currentId, cropped);
+      const bannerURL = await backend.uploadBanner(currentUid, currentId, toUpload);
       currentSignature = { ...currentSignature, bannerURL };
       bannerCacheBust = Date.now();
       bannerPreview.src = withCacheBust(bannerURL, bannerCacheBust);
