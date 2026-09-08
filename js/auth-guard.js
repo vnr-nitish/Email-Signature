@@ -45,17 +45,15 @@ export function wireLogout(buttonEl) {
 // The single "where does a freshly-authenticated user land" decision, used
 // right after Google sign-in (index.html, and login.html for backends
 // whose loginWithGoogle() resolves in place rather than navigating away).
-// A real GITAM student gets a default "GITAM Signature" seeded the first
-// time they have zero signatures; everyone else just proceeds to whatever
-// they already have.
+// Ensures a default "GITAM Signature" exists before proceeding — see
+// ensureDefaultSignature's own comment for why this is safe to call
+// unconditionally for both a GITAM student and the admin account.
 export async function routeAfterLogin(user) {
   if (!isAuthorized(user)) {
     await backend.logOut();
     window.location.href = "login.html?denied=1";
     return;
   }
-  if (isAllowedEmail(user.email)) {
-    await backend.ensureAtLeastOneSignature(user.uid);
-  }
+  await backend.ensureDefaultSignature(user.uid);
   window.location.href = "signatures.html";
 }

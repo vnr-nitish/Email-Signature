@@ -131,11 +131,11 @@ export const backend = {
     return map[id] ? toApp(id, map[id]) : null;
   },
 
-  async ensureAtLeastOneSignature(ownerUid) {
+  async ensureDefaultSignature(ownerUid) {
     const existing = await this.listSignatures(ownerUid);
-    if (existing.length > 0) return existing;
+    if (existing.some((s) => s.isDefault)) return existing;
     const created = await this.createSignature(ownerUid, "GITAM Signature", true);
-    return [created];
+    return [...existing, created];
   },
 
   async createSignature(ownerUid, name, isDefault = false) {

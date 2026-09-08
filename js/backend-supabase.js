@@ -132,15 +132,17 @@ export const backend = {
     return data ? fromDbRow(data) : null;
   },
 
-  // Called right after a real GITAM Google login. If this account has no
-  // signatures at all yet, seeds one default "GITAM Signature" — but only
-  // once ever per empty state, so deleting it later doesn't force it back
-  // unless they're down to zero signatures again.
-  async ensureAtLeastOneSignature(ownerUid) {
+  // Called right after login (both a real GITAM Google login and the
+  // admin's own login). If this account doesn't already have a signature
+  // flagged as the default, seeds one "GITAM Signature" — checked by
+  // is_default specifically, not just "has any signatures at all", so it
+  // still works correctly for an account (like the admin's) that already
+  // has other, non-default signatures.
+  async ensureDefaultSignature(ownerUid) {
     const existing = await this.listSignatures(ownerUid);
-    if (existing.length > 0) return existing;
+    if (existing.some((s) => s.isDefault)) return existing;
     const created = await this.createSignature(ownerUid, "GITAM Signature", true);
-    return [created];
+    return [...existing, created];
   },
 
   async createSignature(ownerUid, name, isDefault = false) {
